@@ -13,7 +13,9 @@ import {
   Download, 
   Info,
   Layers,
-  Code2
+  Code2,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 
 // Define Types
@@ -59,6 +61,49 @@ export default function App() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'bugs' | 'security' | 'optimization' | 'styling'>('bugs');
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // AI Chat with Repository States
+  const [activeDashboardView, setActiveDashboardView] = useState<'audit' | 'chat'>('audit');
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+
+  const handleSendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+
+    const userMessage = chatInput;
+    setChatInput('');
+    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsChatLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          history: chatHistory,
+          model: selectedModel
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Chat service encountered an error.');
+      }
+
+      const data = await response.json();
+      setChatHistory(prev => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (err: any) {
+      console.error(err);
+      setChatHistory(prev => [
+        ...prev,
+        { role: 'assistant', content: `❌ Error: ${err.message || 'Could not communicate with the chat endpoint.'}` }
+      ]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
 
   // GSSoC Issues State (Mentorship Panel)
   const [assignedContributors, setAssignedContributors] = useState<Record<string, string>>({
@@ -495,193 +540,376 @@ export default function App() {
 
           {/* 4. The Complete Analysis Dashboard (Split Audit View) */}
           {!isLoading && analysisResult && (
-            <div style={{ flexGrow: 1, display: 'grid', gridTemplateColumns: '240px 1fr 1fr', gap: '20px', boxSizing: 'border-box' }}>
+            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '16px', boxSizing: 'border-box' }}>
               
-              {/* File Tree List */}
-              <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '72vh' }}>
-                <h3 style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>File Navigator</h3>
-                {Object.keys(analysisResult.analysis.fileReviews).map((filePath) => (
-                  <button
-                    key={filePath}
-                    onClick={() => setSelectedFile(filePath)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      background: selectedFile === filePath ? 'rgba(59,130,246,0.1)' : 'transparent',
-                      border: selectedFile === filePath ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
-                      color: selectedFile === filePath ? '#60a5fa' : '#d1d5db',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: selectedFile === filePath ? 600 : 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    <FileCode size={14} style={{ color: selectedFile === filePath ? '#60a5fa' : '#9ca3af' }} />
-                    {filePath}
-                  </button>
-                ))}
+              {/* Dashboard View Selection Tabs */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => setActiveDashboardView('audit')}
+                  style={{
+                    background: activeDashboardView === 'audit' ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: '1px solid',
+                    borderColor: activeDashboardView === 'audit' ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.08)',
+                    color: activeDashboardView === 'audit' ? '#60a5fa' : '#9ca3af',
+                    borderRadius: '6px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  <Layers size={14} /> Code Audit Report
+                </button>
+                <button 
+                  onClick={() => setActiveDashboardView('chat')}
+                  style={{
+                    background: activeDashboardView === 'chat' ? 'rgba(168,85,247,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: '1px solid',
+                    borderColor: activeDashboardView === 'chat' ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)',
+                    color: activeDashboardView === 'chat' ? '#c084fc' : '#9ca3af',
+                    borderRadius: '6px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  <MessageSquare size={14} /> AI Code Chatbot
+                </button>
               </div>
 
-              {/* Central Audit Hub */}
-              <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '10px', background: '#3b82f6', color: '#eff6ff', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>File Audit</span>
-                  <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    📄 {selectedFile || 'Select a file'}
-                  </h3>
+              <div style={{ 
+                flexGrow: 1, 
+                display: 'grid', 
+                gridTemplateColumns: activeDashboardView === 'audit' ? '240px 1fr 1fr' : '240px 1fr', 
+                gap: '20px', 
+                boxSizing: 'border-box' 
+              }}>
+                
+                {/* File Tree List */}
+                <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '72vh' }}>
+                  <h3 style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>File Navigator</h3>
+                  {Object.keys(analysisResult.analysis.fileReviews).map((filePath) => (
+                    <button
+                      key={filePath}
+                      onClick={() => setSelectedFile(filePath)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        background: selectedFile === filePath ? 'rgba(59,130,246,0.1)' : 'transparent',
+                        border: selectedFile === filePath ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent',
+                        color: selectedFile === filePath ? '#60a5fa' : '#d1d5db',
+                        textAlign: 'left',
+                        fontSize: '12px',
+                        fontWeight: selectedFile === filePath ? 600 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <FileCode size={14} style={{ color: selectedFile === filePath ? '#60a5fa' : '#9ca3af' }} />
+                      {filePath}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Audit Tabs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '16px' }}>
-                  <button
-                    onClick={() => setActiveTab('bugs')}
-                    style={{
-                      padding: '6px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: activeTab === 'bugs' ? 'rgba(249,115,22,0.1)' : 'transparent',
-                      borderColor: activeTab === 'bugs' ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.05)',
-                      color: activeTab === 'bugs' ? '#f97316' : '#9ca3af',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <AlertTriangle size={12} /> Bugs
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('security')}
-                    style={{
-                      padding: '6px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: activeTab === 'security' ? 'rgba(239,68,68,0.1)' : 'transparent',
-                      borderColor: activeTab === 'security' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.05)',
-                      color: activeTab === 'security' ? '#ef4444' : '#9ca3af',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <ShieldAlert size={12} /> Security
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('optimization')}
-                    style={{
-                      padding: '6px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: activeTab === 'optimization' ? 'rgba(34,197,94,0.1)' : 'transparent',
-                      borderColor: activeTab === 'optimization' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.05)',
-                      color: activeTab === 'optimization' ? '#22c55e' : '#9ca3af',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Zap size={12} /> Perf
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('styling')}
-                    style={{
-                      padding: '6px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: '1px solid',
-                      background: activeTab === 'styling' ? 'rgba(59,130,246,0.1)' : 'transparent',
-                      borderColor: activeTab === 'styling' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)',
-                      color: activeTab === 'styling' ? '#3b82f6' : '#9ca3af',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <Terminal size={12} /> Style
-                  </button>
-                </div>
-
-                {/* Audit Items Render */}
-                <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '54vh', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {selectedFile && analysisResult.analysis.fileReviews[selectedFile]?.[activeTab]?.length > 0 ? (
-                    analysisResult.analysis.fileReviews[selectedFile][activeTab].map((item, index) => (
-                      <div 
-                        key={index}
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: '8px',
-                          background: 'rgba(15,23,42,0.4)',
-                          borderLeft: '3px solid',
-                          borderColor: activeTab === 'bugs' ? '#f97316' : activeTab === 'security' ? '#ef4444' : activeTab === 'optimization' ? '#22c55e' : '#3b82f6'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#f3f4f6' }}>{item.type}</span>
-                          <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.08)', color: '#9ca3af', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                            Line {item.line}
-                          </span>
-                        </div>
-                        <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#d1d5db', lineHeight: 1.4 }}>{item.description}</p>
-                        <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '8px 10px' }}>
-                          <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>💡 AI Recommendation</span>
-                          <code style={{ fontSize: '11px', color: '#a855f7', wordBreak: 'break-all' }}>{item.suggestion}</code>
-                        </div>
+                {activeDashboardView === 'audit' && (
+                  <>
+                    {/* Central Audit Hub */}
+                    <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '10px', background: '#3b82f6', color: '#eff6ff', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>File Audit</span>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          📄 {selectedFile || 'Select a file'}
+                        </h3>
                       </div>
-                    ))
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                      <CheckCircle size={32} style={{ color: '#22c55e' }} />
-                      <div>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>All Clean!</span>
-                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>No issues found in this category for this file.</span>
+
+                      {/* Audit Tabs */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '16px' }}>
+                        <button
+                          onClick={() => setActiveTab('bugs')}
+                          style={{
+                            padding: '6px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: '1px solid',
+                            background: activeTab === 'bugs' ? 'rgba(249,115,22,0.1)' : 'transparent',
+                            borderColor: activeTab === 'bugs' ? 'rgba(249,115,22,0.3)' : 'rgba(255,255,255,0.05)',
+                            color: activeTab === 'bugs' ? '#f97316' : '#9ca3af',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <AlertTriangle size={12} /> Bugs
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('security')}
+                          style={{
+                            padding: '6px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: '1px solid',
+                            background: activeTab === 'security' ? 'rgba(239,68,68,0.1)' : 'transparent',
+                            borderColor: activeTab === 'security' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.05)',
+                            color: activeTab === 'security' ? '#ef4444' : '#9ca3af',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <ShieldAlert size={12} /> Security
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('optimization')}
+                          style={{
+                            padding: '6px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: '1px solid',
+                            background: activeTab === 'optimization' ? 'rgba(34,197,94,0.1)' : 'transparent',
+                            borderColor: activeTab === 'optimization' ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.05)',
+                            color: activeTab === 'optimization' ? '#22c55e' : '#9ca3af',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Zap size={12} /> Perf
+                        </button>
+                        <button
+                          onClick={() => setActiveTab('styling')}
+                          style={{
+                            padding: '6px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            border: '1px solid',
+                            background: activeTab === 'styling' ? 'rgba(59,130,246,0.1)' : 'transparent',
+                            borderColor: activeTab === 'styling' ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)',
+                            color: activeTab === 'styling' ? '#3b82f6' : '#9ca3af',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Terminal size={12} /> Style
+                        </button>
+                      </div>
+
+                      {/* Audit Items Render */}
+                      <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '54vh', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {selectedFile && analysisResult.analysis.fileReviews[selectedFile]?.[activeTab]?.length > 0 ? (
+                          analysisResult.analysis.fileReviews[selectedFile][activeTab].map((item, index) => (
+                            <div 
+                              key={index}
+                              style={{
+                                padding: '12px 14px',
+                                borderRadius: '8px',
+                                background: 'rgba(15,23,42,0.4)',
+                                borderLeft: '3px solid',
+                                borderColor: activeTab === 'bugs' ? '#f97316' : activeTab === 'security' ? '#ef4444' : activeTab === 'optimization' ? '#22c55e' : '#3b82f6'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 700, color: '#f3f4f6' }}>{item.type}</span>
+                                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.08)', color: '#9ca3af', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                                  Line {item.line}
+                                </span>
+                              </div>
+                              <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#d1d5db', lineHeight: 1.4 }}>{item.description}</p>
+                              <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '8px 10px' }}>
+                                <span style={{ display: 'block', fontSize: '9px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>💡 AI Recommendation</span>
+                                <code style={{ fontSize: '11px', color: '#a855f7', wordBreak: 'break-all' }}>{item.suggestion}</code>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                            <CheckCircle size={32} style={{ color: '#22c55e' }} />
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>All Clean!</span>
+                              <span style={{ fontSize: '11px', color: '#9ca3af' }}>No issues found in this category for this file.</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+
+                    {/* generated README.md Preview */}
+                    <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+                      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span style={{ fontSize: '10px', background: '#a855f7', color: '#fae8ff', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>Documentation</span>
+                          <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6', margin: '4px 0 0 0' }}>📄 GENERATED_README.md</h3>
+                        </div>
+                        <button 
+                          onClick={downloadReadme}
+                          style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', color: '#c084fc', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Download size={14} /> Download
+                        </button>
+                      </div>
+
+                      <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '60vh', background: 'rgba(15,23,42,0.4)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '12px', lineHeight: 1.5, color: '#d1d5db', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                        {analysisResult.analysis.generatedReadme}
                       </div>
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
 
-              </div>
+                {activeDashboardView === 'chat' && (
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', minHeight: '68vh' }}>
+                    
+                    {/* Chat Header */}
+                    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <span style={{ fontSize: '10px', background: '#a855f7', color: '#fae8ff', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>Interactive Chat</span>
+                        <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6', margin: '4px 0 0 0' }}>💬 Chat with Codebase</h3>
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        Active: <strong style={{ color: '#c084fc' }}>{selectedModel.split('-')[0].toUpperCase()}</strong>
+                      </span>
+                    </div>
 
-              {/* generated README.md Preview */}
-              <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontSize: '10px', background: '#a855f7', color: '#fae8ff', padding: '2px 8px', borderRadius: '20px', fontWeight: 600, textTransform: 'uppercase' }}>Documentation</span>
-                    <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#f3f4f6', margin: '4px 0 0 0' }}>📄 GENERATED_README.md</h3>
+                    {/* Messages Scroller */}
+                    <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: '4px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '52vh' }}>
+                      {chatHistory.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '30px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '40vh', gap: '16px' }}>
+                          <div style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '16px', borderRadius: '50%' }}>
+                            <Sparkles size={32} style={{ color: '#a855f7' }} />
+                          </div>
+                          <div style={{ maxWidth: '400px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#f3f4f6', display: 'block', marginBottom: '4px' }}>Ask anything about your repository</span>
+                            <span style={{ fontSize: '11px', color: '#9ca3af', lineHeight: 1.5, display: 'block' }}>
+                              I have parsed the codebase source code. Ask questions like:
+                            </span>
+                          </div>
+                          
+                          {/* Suggested Queries */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', width: '100%', maxWidth: '380px', marginTop: '6px' }}>
+                            {[
+                              "Explain the overall architecture and setup of this repo.",
+                              "What are the main entry points and critical API paths?",
+                              "Can you find any security flaws or logic bugs here?",
+                              "Write a simple automated test suite for this module structure."
+                            ].map((queryText, qIdx) => (
+                              <button
+                                key={qIdx}
+                                onClick={() => {
+                                  setChatInput(queryText);
+                                }}
+                                style={{
+                                  background: 'rgba(255,255,255,0.02)',
+                                  border: '1px solid rgba(255,255,255,0.05)',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  fontSize: '11px',
+                                  color: '#d1d5db',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                className="hover:bg-white/5"
+                              >
+                                💡 {queryText}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        chatHistory.map((msg, index) => (
+                          <div 
+                            key={index}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                              maxWidth: '85%',
+                              background: msg.role === 'user' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(15, 23, 42, 0.4)',
+                              border: '1px solid',
+                              borderColor: msg.role === 'user' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                              borderRadius: msg.role === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
+                              padding: '10px 14px',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: msg.role === 'user' ? '#60a5fa' : '#c084fc', textTransform: 'uppercase', marginBottom: '4px' }}>
+                              {msg.role === 'user' ? 'You' : 'RepoSage Assistant'}
+                            </span>
+                            <div style={{ fontSize: '12px', color: '#e5e7eb', lineHeight: 1.5, whiteSpace: 'pre-wrap', fontFamily: msg.role === 'assistant' ? 'monospace' : 'inherit' }}>
+                              {msg.content}
+                            </div>
+                          </div>
+                        ))
+                      )}
+
+                      {isChatLoading && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start', background: 'rgba(15, 23, 42, 0.4)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '12px 12px 12px 0', padding: '10px 14px', gap: '6px', width: '80px' }}>
+                          <span style={{ fontSize: '9px', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase' }}>RepoSage</span>
+                          <div style={{ display: 'flex', gap: '4px', padding: '2px 0' }}>
+                            <span className="typing-dot" style={{ width: '5px', height: '5px', background: '#c084fc', borderRadius: '50%', display: 'inline-block' }}></span>
+                            <span className="typing-dot" style={{ width: '5px', height: '5px', background: '#c084fc', borderRadius: '50%', display: 'inline-block', animationDelay: '0.2s' }}></span>
+                            <span className="typing-dot" style={{ width: '5px', height: '5px', background: '#c084fc', borderRadius: '50%', display: 'inline-block', animationDelay: '0.4s' }}></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input form */}
+                    <form onSubmit={handleSendChatMessage} style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask a question about the codebase files..."
+                        style={{
+                          flexGrow: 1,
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          border: '1px solid rgba(255, 255, 255, 0.08)',
+                          borderRadius: '6px',
+                          color: '#f3f4f6',
+                          padding: '10px 14px',
+                          fontSize: '12px',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isChatLoading || !chatInput.trim()}
+                        style={{
+                          background: 'linear-gradient(135deg, #a855f7 0%, #3b82f6 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '10px 18px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: (isChatLoading || !chatInput.trim()) ? 0.6 : 1,
+                          transition: 'opacity 0.15s ease'
+                        }}
+                      >
+                        <Send size={14} />
+                      </button>
+                    </form>
+
                   </div>
-                  <button 
-                    onClick={downloadReadme}
-                    style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', color: '#c084fc', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Download size={14} /> Download
-                  </button>
-                </div>
+                )}
 
-                <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '60vh', background: 'rgba(15,23,42,0.4)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '12px', lineHeight: 1.5, color: '#d1d5db', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                  {analysisResult.analysis.generatedReadme}
-                </div>
               </div>
-
             </div>
           )}
 

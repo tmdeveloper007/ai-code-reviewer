@@ -24,6 +24,9 @@ if (!fs.existsSync(tempReposDir)) {
   fs.mkdirSync(tempReposDir, { recursive: true });
 }
 
+// Global variable to cache the active repository context for chat functionality
+let activeRepositoryContext = null;
+
 // 🟢 Helper to recursively read files
 function readFilesRecursively(dir, fileList = [], baseDir = dir) {
   const files = fs.readdirSync(dir);
@@ -208,10 +211,17 @@ app.post('/api/analyze', async (req, res) => {
         });
       }
 
-      // 3. Clean up folder
+      // 3. Cache the active repository context for chat
+      activeRepositoryContext = {
+        repoUrl,
+        repoName,
+        files
+      };
+
+      // 4. Clean up folder
       deleteFolderRecursive(clonePath);
       
-      // 4. Return result
+      // 5. Return result
       return res.json({
         success: true,
         repoName,
@@ -225,6 +235,48 @@ app.post('/api/analyze', async (req, res) => {
       return res.status(500).json({ error: 'An error occurred during repository analysis.' });
     }
   });
+});
+
+// 🟢 Route: AI Chat with Repository
+app.post('/api/chat', async (req, res) => {
+  const { message, history = [], model = 'llama-3.3-70b-versatile' } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required.' });
+  }
+
+  if (!activeRepositoryContext) {
+    return res.status(400).json({ error: 'No repository is currently active. Please analyze a repository first.' });
+  }
+
+  const aiEngineUrl = process.env.AI_ENGINE_URL || 'http://localhost:8000';
+
+  try {
+    const aiResponse = await fetch(`${aiEngineUrl}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        files: activeRepositoryContext.files,
+        message,
+        history,
+        model
+      })
+    });
+
+    if (aiResponse.ok) {
+      const data = await aiResponse.json();
+      return res.json(data);
+    } else {
+      const errText = await aiResponse.text();
+      throw new Error(errText || 'AI engine chat request failed');
+    }
+  } catch (err) {
+    console.error('❌ Chat API Error:', err.message);
+    
+    // Simple local fallback if Python FastAPI server is offline
+    const responseMessage = `[Fallback Response] I see you are asking about: "${message}". Currently, the FastAPI AI Engine is offline, so I cannot analyze the full codebase for your query. Please make sure the AI Engine service is running on port 8000.`;
+    return res.json({ response: responseMessage });
+  }
 });
 
 // 🟢 Helper for Mock AI Review (Provides instant feedback when python server is offline)

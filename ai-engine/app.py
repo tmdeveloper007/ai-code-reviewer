@@ -45,6 +45,12 @@ class AnalyzeRequest(BaseModel):
     language: Optional[str] = "English"
     model: Optional[str] = "llama-3.3-70b-versatile"
 
+class ChatRequest(BaseModel):
+    files: List[FileItem]
+    message: str
+    history: Optional[List[dict]] = []
+    model: Optional[str] = "llama-3.3-70b-versatile"
+
 # 🟢 Route: Root Check
 @app.get("/")
 def read_root():
@@ -133,6 +139,81 @@ Format your JSON precisely as:
     except Exception as e:
       print(f"❌ Groq API Call Failed: {e}")
       raise HTTPException(status_code=500, detail=f"Groq API reasoning failed: {str(e)}")
+
+# 🟢 Route: AI Chat with Repository Context
+@app.post("/chat")
+async def chat_with_repository(request: ChatRequest):
+    if not groq_client:
+        raise HTTPException(status_code=500, detail="Groq API client is not configured on this engine.")
+    
+    files = request.files
+    message = request.message
+    history = request.history
+    
+    # 1. Structure the files representation for the prompt context
+    repo_structure = []
+    file_contents_summary = []
+    
+    for f in files[:20]:  # Limit context window to top 20 files
+        repo_structure.append(f.name)
+        file_contents_summary.append(f"--- File: {f.name} ---\n{f.content[:1500]}") # Truncate large files
+        
+    structure_text = "\n".join(repo_structure)
+    contents_text = "\n\n".join(file_contents_summary)
+
+    # 2. Build the system prompt injecting repository context
+    system_prompt = f"""You are RepoSage Chat, an expert AI developer assistant.
+You are helping the user understand and work with their codebase. Use the code context provided below to answer questions, explain logic, write tests, or find issues.
+
+Here is the repository layout:
+{structure_text}
+
+Here is the code file content context:
+{contents_text}
+
+Guidelines:
+- Provide clear, direct, and technically accurate explanations.
+- When generating code, use appropriate syntax block formatting (e.g. ```javascript ... ```).
+- If the question cannot be answered using the provided context, state that clearly but try to offer general guidance based on standard practices.
+"""
+
+    # 3. Assemble chat messages history + user query
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Add history messages
+    for h in history:
+        messages.append({
+            "role": h.get("role", "user"),
+            "content": h.get("content", "")
+        })
+        
+    # Append current user question
+    messages.append({"role": "user", "content": message})
+
+    # 4. Resolve the requested Groq LLM model
+    groq_model = "llama-3.3-70b-versatile"
+    req_model = request.model.lower() if request.model else ""
+    if "deepseek" in req_model:
+        groq_model = "deepseek-r1-distill-llama-70b"
+    elif "llama-3.1" in req_model or "8b" in req_model:
+        groq_model = "llama-3.1-8b-instant"
+    elif "gemma" in req_model:
+        groq_model = "gemma2-9b-it"
+
+    print(f"📡 Forwarding repo chat request to Groq using model: {groq_model}")
+
+    try:
+        completion = groq_client.chat.completions.create(
+            model=groq_model,
+            messages=messages,
+            temperature=0.4
+        )
+        response_content = completion.choices[0].message.content
+        return {"response": response_content}
+        
+    except Exception as e:
+        print(f"❌ Groq Chat API Call Failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Groq API chat failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
