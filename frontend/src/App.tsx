@@ -62,10 +62,10 @@ export default function App() {
 
   // GSSoC Issues State (Mentorship Panel)
   const [assignedContributors, setAssignedContributors] = useState<Record<string, string>>({
-    'frontend-dark-mode': 'Unassigned',
-    'backend-java-parser': 'Unassigned',
-    'pdf-report-export': 'Unassigned',
-    'ollama-integration': 'Unassigned'
+    'copy-code-button': 'Unassigned',
+    'secret-scanning-rules': 'Unassigned',
+    'api-documentation': 'Unassigned',
+    'persist-assignments': 'Unassigned'
   });
 
   const handleAssignContributor = (issueKey: string) => {
@@ -377,53 +377,53 @@ export default function App() {
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'rgba(168,85,247,0.05)', borderRadius: '6px', border: '1px solid rgba(168,85,247,0.1)' }}>
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Add Dark Mode UI</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Copy Code Button</span>
                   <span style={{ fontSize: '10px', color: '#a855f7' }}>🏷️ good first issue</span>
                 </div>
                 <button 
-                  onClick={() => handleAssignContributor('frontend-dark-mode')}
-                  style={{ background: assignedContributors['frontend-dark-mode'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => handleAssignContributor('copy-code-button')}
+                  style={{ background: assignedContributors['copy-code-button'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {assignedContributors['frontend-dark-mode']}
+                  {assignedContributors['copy-code-button']}
                 </button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'rgba(59,130,246,0.05)', borderRadius: '6px', border: '1px solid rgba(59,130,246,0.1)' }}>
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Add Java Parser</span>
-                  <span style={{ fontSize: '10px', color: '#3b82f6' }}>🏷️ backend / ai</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Expand Security Rules</span>
+                  <span style={{ fontSize: '10px', color: '#3b82f6' }}>🏷️ backend / security</span>
                 </div>
                 <button 
-                  onClick={() => handleAssignContributor('backend-java-parser')}
-                  style={{ background: assignedContributors['backend-java-parser'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => handleAssignContributor('secret-scanning-rules')}
+                  style={{ background: assignedContributors['secret-scanning-rules'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {assignedContributors['backend-java-parser']}
+                  {assignedContributors['secret-scanning-rules']}
                 </button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'rgba(168,85,247,0.05)', borderRadius: '6px', border: '1px solid rgba(168,85,247,0.1)' }}>
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>PDF Report Exporter</span>
-                  <span style={{ fontSize: '10px', color: '#a855f7' }}>🏷️ enhancement</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>API Endpoint Spec</span>
+                  <span style={{ fontSize: '10px', color: '#a855f7' }}>🏷️ documentation</span>
                 </div>
                 <button 
-                  onClick={() => handleAssignContributor('pdf-report-export')}
-                  style={{ background: assignedContributors['pdf-report-export'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => handleAssignContributor('api-documentation')}
+                  style={{ background: assignedContributors['api-documentation'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {assignedContributors['pdf-report-export']}
+                  {assignedContributors['api-documentation']}
                 </button>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'rgba(34,197,94,0.05)', borderRadius: '6px', border: '1px solid rgba(34,197,94,0.1)' }}>
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Ollama Local Model</span>
-                  <span style={{ fontSize: '10px', color: '#22c55e' }}>🏷️ advanced</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f3f4f6', display: 'block' }}>Persist Contributor State</span>
+                  <span style={{ fontSize: '10px', color: '#22c55e' }}>🏷️ frontend</span>
                 </div>
                 <button 
-                  onClick={() => handleAssignContributor('ollama-integration')}
-                  style={{ background: assignedContributors['ollama-integration'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
+                  onClick={() => handleAssignContributor('persist-assignments')}
+                  style={{ background: assignedContributors['persist-assignments'] === 'Unassigned' ? '#a855f7' : '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {assignedContributors['ollama-integration']}
+                  {assignedContributors['persist-assignments']}
                 </button>
               </div>
 

@@ -11,8 +11,8 @@ Welcome to **RepoSage**! Developers spend countless hours reviewing code, writin
 - **GitHub Repo Import**: Instantly analyze entire GitHub repositories.
 - **AI Code Review**: Automated bug detection, security scanning, and style suggestions.
 - **README Generator**: Automatically generate comprehensive documentation for any repository.
-- **Multi-language Support**: Supports Python, JavaScript, and TypeScript (more coming soon!).
-- **Dashboard UI**: Modern, clean, and intuitive dashboard built with React and TailwindCSS.
+- **Multi-language Support**: Fully supports Python, JavaScript, TypeScript, Java, Go, Rust, C++, C#, PHP, Ruby, SQL, HTML, and CSS!
+- **Dashboard UI**: Modern, clean, and intuitive dashboard built with React and Vanilla CSS.
 - **GitHub Action Bot**: Automated Pull Request code reviewer that posts inline line-by-line feedback directly on GitHub.
 
 ## 🏗️ Architecture

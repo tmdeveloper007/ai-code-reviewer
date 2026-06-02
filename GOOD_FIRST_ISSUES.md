@@ -1,26 +1,57 @@
-# 🌟 Good First Issues
+# 🌟 Good First Issues (GSSoC '26)
 
-Welcome to the **RepoSage** contributor hub! If you are a beginner or participating in **GSSoC**, these tasks are reserved specifically for you.
+Welcome to the **RepoSage** contributor hub! If you are participating in **GSSoC '26** or looking to make your first contributions, these tasks are designed specifically for you.
 
-To claim an issue, please comment on the GitHub issue tracker, and an admin will assign it to you.
+To claim an issue:
+1. Browse the list below or check the GitHub Issues tab.
+2. Comment on the issue requesting to be assigned.
+3. Wait for an administrator or mentor to assign it to you.
+4. Submit your PR within the specified timeline.
 
-## 🎨 Frontend Tasks
-1. **Add Dark Mode Toggle**: Implement a clean dark mode theme using TailwindCSS.
-2. **Improve Responsive Design**: Ensure the Dashboard UI looks great on mobile devices.
-3. **Enhance Upload UI**: Add drag-and-drop animations for the repository upload component.
+---
 
-## ⚙️ Backend Tasks
-1. **Error Handling**: Add structured error responses for API timeouts.
-2. **Validation**: Add input validation for GitHub repository URL submissions.
+## 📋 Open Issues List
 
-## 🧠 AI Engine Tasks
-1. **Add Language Parser**: Extend the codebase parser to support Java or Go.
-2. **New Prompt Templates**: Create advanced prompt templates for Security Vulnerability scanning.
-3. **Improve Markdown Formatting**: Enhance the output generator so AI reviews are beautifully formatted in Markdown.
+### 1. 🎨 Frontend: Implement "Copy Code" Button in Code Viewer
+* **Description**: When reviewing code files in the dashboard, users want to quickly copy file content. We need a "Copy Code" button at the top of the code viewer.
+* **Suggested Labels**: `gssoc26`, `good-first-issue`, `frontend`
+* **Implementation Hints**:
+  - Locate the code container inside `frontend/src/App.tsx`.
+  - Add a clipboard copy button (using a `lucide-react` icon like `Copy` or `Check` for success state).
+  - Use `navigator.clipboard.writeText(selectedFileContent)` to save to clipboard.
+  - Implement a 2-second visual feedback (e.g., changing the icon or showing "Copied!").
 
-## 🤖 GitHub Action Tasks
-1. **Model Selection Input**: Allow contributors to select different LLM models or AI providers (e.g., Gemini, OpenAI) via workflow inputs.
-2. **Custom Review Prompt**: Add support for loading a custom review prompt template from a local file in the target repository.
-3. **Draft Review Mode**: Add a workflow input to post reviews as drafts rather than submitting them immediately.
-4. **Exclude Path Enhancement**: Upgrade path filtering to support full picomatch/minimatch glob matching.
+### 2. ⚙️ Backend: Add Detection Rules for Private Keys & API Tokens
+* **Description**: Expand the backend's security scanner helper to detect generic private keys and other common credentials to protect developer codebases.
+* **Suggested Labels**: `gssoc26`, `good-first-issue`, `backend`
+* **Implementation Hints**:
+  - Open `backend/index.js` and locate the `scanSecrets` function.
+  - Add regex rules for:
+    1. Generic Private Keys (e.g. detecting `-----BEGIN PRIVATE KEY-----` or `-----BEGIN RSA PRIVATE KEY-----`).
+    2. Common credentials in `.env` / config files (e.g. `PASSWORD = "..."`, `SECRET_KEY = "..."`) using refined regex.
+    3. Twilio Account SID (`AC[a-f0-9]{32}`) and Auth Token.
+  - Confirm the new findings are correctly mapped to findings list format.
+
+### 3. 🧠 AI Engine & Docs: Document API Endpoints in API.md
+* **Description**: Document the HTTP API endpoints exposed by both the Node.js Express backend and the FastAPI AI engine to make developer onboarding easier.
+* **Suggested Labels**: `gssoc26`, `good-first-issue`, `documentation`
+* **Implementation Hints**:
+  - Create a new markdown file named `API.md` in the root folder.
+  - Document `POST /api/analyze` on the Express backend (inputs: `repoUrl`, `model`, `language`, outputs: JSON structure containing `bugs`, `security`, `optimization` findings, and file list).
+  - Document `POST /analyze` on the Python FastAPI server.
+  - Provide complete `curl` request and response JSON examples.
+  - Add a link to `API.md` in the root `README.md`.
+
+### 4. 🎨 Frontend: Persist Contributor Assignments to Local Storage
+* **Description**: The GSSoC contributor assignment portal simulator on the React dashboard resets assignments when the page is refreshed. Let's persist these to `localStorage`.
+* **Suggested Labels**: `gssoc26`, `good-first-issue`, `frontend`
+* **Implementation Hints**:
+  - Open `frontend/src/App.tsx` and find the state declaration `assignedContributors`.
+  - Initialize the state by loading data from `localStorage.getItem('reposage_contributor_assignments')` if present.
+  - Update `handleAssignContributor` to save assignments into `localStorage` using `localStorage.setItem`.
+  - Add a "Reset Assignments" button below the simulator grid to clear `localStorage` and reset assignments to "Unassigned".
+
+---
+
+Let's make RepoSage an amazing open-source experience together! 🚀🔥
 
