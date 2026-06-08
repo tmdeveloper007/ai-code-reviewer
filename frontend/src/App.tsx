@@ -41,6 +41,9 @@ try {
   console.error("Failed to initialize Mermaid:", e);
 }
 
+// API Endpoint Configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Define Types
 interface ReviewItem {
   type: string;
@@ -355,7 +358,7 @@ export default function App() {
       : [category];
 
     try {
-      const response = await fetch('http://localhost:5000/api/issues/create', {
+      const response = await fetch(`${API_BASE_URL}/api/issues/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -402,7 +405,7 @@ export default function App() {
     setIsChatLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -511,7 +514,7 @@ export default function App() {
     }, 1200);
 
     try {
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repoUrl, company, language, model: selectedModel })
@@ -649,7 +652,7 @@ export default function App() {
   const downloadHTMLReport = async () => {
     if (!analysisResult) return;
     try {
-      const response = await fetch('http://localhost:5000/api/reports/html', {
+      const response = await fetch(`${API_BASE_URL}/api/reports/html`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
