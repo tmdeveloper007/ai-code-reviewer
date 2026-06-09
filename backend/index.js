@@ -383,7 +383,9 @@ function deleteFolderRecursive(directoryPath) {
 
 // 🟢 Route: GitHub Import & AI Review
 app.post('/api/analyze', async (req, res) => {
-  const { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile' } = req.body;
+  const { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile',temperature = 0.7,
+     maxTokens = 2048,systemPrompt = ''
+   } = req.body;
 
   if (!repoUrl) {
     return res.status(400).json({ error: 'GitHub Repository URL is required.' });
@@ -423,7 +425,7 @@ app.post('/api/analyze', async (req, res) => {
         const aiResponse = await fetch(`${aiEngineUrl}/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files, company, language, model })
+          body: JSON.stringify({ files, company, language, model,temperature,maxTokens, systemPrompt })
         });
         
         if (aiResponse.ok) {
@@ -514,7 +516,10 @@ app.post('/api/chat', async (req, res) => {
         files: activeRepositoryContext.files,
         message,
         history,
-        model
+        model,
+        temperature,
+        maxTokens,
+        systemPrompt
       })
     });
 

@@ -44,6 +44,10 @@ class AnalyzeRequest(BaseModel):
     company: Optional[str] = "General"
     language: Optional[str] = "English"
     model: Optional[str] = "llama-3.3-70b-versatile"
+    temperature: Optional[float] = 0.7
+    maxTokens: Optional[int] = 2048
+    systemPrompt: Optional[str] = ""
+    
 
 class ChatRequest(BaseModel):
     files: List[FileItem]
@@ -65,6 +69,9 @@ async def analyze_repository(request: AnalyzeRequest):
     files = request.files
     company = request.company
     language = request.language
+    temperature = request.temperature or 0.7
+    max_tokens = request.maxTokens or 2048
+    custom_system_prompt = request.systemPrompt or ""
     
     # 1. Structure the files representation for the prompt
     repo_structure = []
@@ -77,8 +84,15 @@ async def analyze_repository(request: AnalyzeRequest):
     structure_text = "\n".join(repo_structure)
     contents_text = "\n\n".join(file_contents_summary)
 
+    base_prompt = (
+    custom_system_prompt.strip()
+    if custom_system_prompt.strip()
+    else "You are a senior staff engineer and security analyst conducting a thorough code review."
+)
+
     # 2. Call Groq to run Code Review
-    review_prompt = f"""You are a senior staff engineer and security analyst conducting a thorough code review.
+    review_prompt = f"""{base_prompt}
+
 Target Company Persona: {company}
 Response Language: {language}
 
@@ -129,11 +143,21 @@ Format your JSON precisely as:
 
     try:
       completion = groq_client.chat.completions.create(
-          model=groq_model,
-          messages=[{"role": "user", "content": review_prompt}],
-          temperature=0.3,
-          response_format={"type": "json_object"}
-      )
+    model=groq_model,
+    messages=[
+        {
+            "role": "system",
+            "content": base_prompt
+        },
+        {
+            "role": "user",
+            "content": review_prompt
+        }
+    ],
+    temperature=temperature,
+    max_tokens=max_tokens,
+    response_format={"type": "json_object"}
+)
       
       response_content = completion.choices[0].message.content
       result = json.loads(response_content)
