@@ -25,6 +25,7 @@ Developers spend **60% of their time** reading and reviewing code. **RepoSage** 
 
 ---
 
+
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
@@ -39,6 +40,7 @@ Developers spend **60% of their time** reading and reviewing code. **RepoSage** 
 - [📜 License](#-license)
 
 ---
+
 
 ## ✨ Features
 
@@ -103,6 +105,7 @@ Ask natural-language questions about any codebase — _"Explain the authenticati
 
 ---
 
+
 ## 🏗️ Architecture
 
 ```mermaid
@@ -156,6 +159,7 @@ The project is split into **four independent modules**:
 
 ---
 
+
 ## 🛠️ Tech Stack
 
 <div align="center">
@@ -171,6 +175,7 @@ The project is split into **four independent modules**:
 </div>
 
 ---
+
 
 ## ⚡ Quick Start
 
@@ -217,6 +222,7 @@ npm run dev              # Starts on http://localhost:3000
 
 ---
 
+
 ## 🤖 GitHub Action Integration
 
 Add automated AI code review to **any repository** in 2 minutes:
@@ -247,6 +253,7 @@ The bot will automatically post inline, line-by-line review comments on every ne
 
 ---
 
+
 ## 📊 API Reference
 
 For complete endpoint documentation with request/response examples, see **[API.md](./API.md)**.
@@ -259,6 +266,7 @@ For complete endpoint documentation with request/response examples, see **[API.m
 | `/analyze` | `POST` | AI Engine direct analysis (FastAPI) |
 
 ---
+
 
 ## 🗺️ Roadmap
 
@@ -274,6 +282,7 @@ See our full **[ROADMAP.md](./ROADMAP.md)** for the detailed project roadmap.
 
 ---
 
+
 ## 🤝 Contributing
 
 We are proudly part of **[GirlScript Summer of Code (GSSoC) '26](https://gssoc.girlscript.tech/)**! 🎉
@@ -281,6 +290,7 @@ We are proudly part of **[GirlScript Summer of Code (GSSoC) '26](https://gssoc.g
 We welcome contributions from everyone — whether you're a first-time open-source contributor or a seasoned developer.
 
 ### How to Get Started
+
 
 1. 📖 Read our **[Contributing Guidelines](CONTRIBUTING.md)**
 2. 🏷️ Browse **[Good First Issues](GOOD_FIRST_ISSUES.md)** for beginner-friendly tasks
@@ -291,6 +301,7 @@ We welcome contributions from everyone — whether you're a first-time open-sour
 
 ---
 
+
 ## 👥 Contributors
 
 Thanks to all the amazing people who have contributed to RepoSage! 💙
@@ -300,6 +311,7 @@ Thanks to all the amazing people who have contributed to RepoSage! 💙
 </a>
 
 ---
+
 
 ## ⭐ Support the Project
 
@@ -315,11 +327,13 @@ If you find RepoSage useful, please consider giving it a ⭐ on GitHub — it he
 
 ---
 
+
 ## 📜 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+
 
 <div align="center">
 
