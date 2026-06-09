@@ -20,7 +20,9 @@ import {
   Sun,
   Moon,
   Clock,
-  Trash2
+  Trash2,
+  Search,
+  X
 } from 'lucide-react';
 import mermaid from 'mermaid';
 
@@ -240,6 +242,7 @@ export default function App() {
   const [analysisResult, setAnalysisResult] = useState<BackendResponse | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileFilterQuery, setFileFilterQuery] = useState('');
+  const [isClearHovered, setIsClearHovered] = useState(false);
   const [activeExtFilter, setActiveExtFilter] = useState('All');
   const [activeTab, setActiveTab] = useState<'bugs' | 'security' | 'optimization' | 'styling' | 'metrics'>('bugs');
   const [apiError, setApiError] = useState<string | null>(null);
@@ -258,6 +261,7 @@ export default function App() {
   const [creatingIssues, setCreatingIssues] = useState<Record<string, boolean>>({});
   const [createdIssues, setCreatedIssues] = useState<Record<string, string>>({});
   const [readmeViewMode, setReadmeViewMode] = useState<'raw' | 'preview'>('preview');
+
 
   // Simple markdown compiler for premium preview rendering
   const renderMarkdown = (md: string) => {
@@ -755,6 +759,33 @@ export default function App() {
     }
   };
 
+  const downloadPDFReport = async () => {
+    if (!analysisResult) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/reports/pdf`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repoName: analysisResult.repoName,
+          analysis: analysisResult.analysis
+        })
+      });
+      if (response.ok) {
+        const pdfBlob = await response.blob();
+        const element = document.createElement("a");
+        element.href = URL.createObjectURL(pdfBlob);
+        element.download = `${analysisResult.repoName}_AUDIT_REPORT.pdf`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+      } else {
+        console.error("Failed to generate PDF report");
+      }
+    } catch (err) {
+      console.error("Error exporting PDF report:", err);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       
@@ -786,6 +817,12 @@ export default function App() {
                 style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', color: '#22c55e', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}
               >
                 <FileCode size={14} /> Export HTML
+              </button>
+              <button 
+                onClick={downloadPDFReport}
+                style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', color: '#f59e0b', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.15s' }}
+              >
+                <Download size={14} /> Export PDF
               </button>
             </>
           )}
@@ -1201,24 +1238,69 @@ export default function App() {
                 {/* File Tree List */}
                 <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '72vh' }}>
                   <h3 style={{ fontSize: '12px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.5px' }}>File Navigator</h3>
-                  <input
-                    type="text"
-                    value={fileFilterQuery}
-                    onChange={(e) => setFileFilterQuery(e.target.value)}
-                    placeholder="Search files..."
+                  <div
                     style={{
+                      position: 'relative',
                       width: '100%',
-                      padding: '6px 10px',
-                      background: 'var(--input-bg)',
-                      border: '1px solid var(--input-border)',
-                      borderRadius: '6px',
-                      color: 'var(--text-color)',
-                      fontSize: '11px',
-                      boxSizing: 'border-box',
-                      marginBottom: '8px',
-                      outline: 'none'
+                      marginBottom: '8px'
                     }}
-                  />
+                  >
+                    <Search
+                      size={14}
+                      style={{
+                        position: 'absolute',
+                        left: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: 'var(--subtext-color)',
+                        pointerEvents: 'none'
+                      }}
+                    />
+
+                    <input
+                      type="text"
+                      value={fileFilterQuery}
+                      onChange={(e) => setFileFilterQuery(e.target.value)}
+                      placeholder="Search files..."
+                      style={{
+                        width: '100%',
+                        padding: '6px 30px 6px 28px',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--input-border)',
+                        borderRadius: '6px',
+                        color: 'var(--text-color)',
+                        fontSize: '11px',
+                        boxSizing: 'border-box',
+                        outline: 'none'
+                      }}
+                    />
+
+                    {fileFilterQuery && (
+                      <button
+                        onClick={() =>{ setFileFilterQuery('')
+                        setIsClearHovered(false)
+                        }}
+                        onMouseEnter={()=> setIsClearHovered(true)}
+                        onMouseLeave={()=> setIsClearHovered(false)}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: isClearHovered? 'rgba(255,255,255,0.1)': 'transparent',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          color: 'var(--subtext-color)',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap' }}>
                     {['All', 'JS/TS', 'Python', 'CSS/HTML'].map(tag => (
                       <button
