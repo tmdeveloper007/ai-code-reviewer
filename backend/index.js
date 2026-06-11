@@ -101,7 +101,7 @@ function readFilesRecursively(dir, fileList = [], baseDir = dir, ignorePatterns 
     } else {
       // Analyze only source code files (Python, JS, TS, HTML, CSS, Go, Rust, Java, C++, PHP, Ruby, SQL)
       const ext = path.extname(file).toLowerCase();
-      const validExtensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.go', '.rs', '.cpp', '.h', '.cs', '.php', '.rb', '.sql', '.html', '.css'];
+      const validExtensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.go', '.rs', '.cpp', '.h', '.cs', '.php', '.rb', '.sql', '.html', '.css', '.json', '.yaml', '.yml'];
       
       if (validExtensions.includes(ext)) {
         try {
