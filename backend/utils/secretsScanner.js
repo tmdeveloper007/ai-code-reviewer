@@ -52,6 +52,7 @@ export const rules = [
 ];
 
 export function scanSecrets(fileContent) {
+  if (typeof fileContent !== 'string') return [];
   const findings = [];
   const lines = fileContent.split('\n');
   lines.forEach((line, idx) => {
@@ -72,8 +73,10 @@ export function scanSecrets(fileContent) {
 }
 
 export function scanSecretsInChanges(changes) {
+  if (!Array.isArray(changes)) return [];
   const findings = [];
   for (const change of changes) {
+    if (!change || typeof change.content !== 'string') continue;
     for (const rule of rules) {
       rule.regex.lastIndex = 0;
       if (rule.regex.test(change.content)) {
