@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { Octokit } from '@octokit/rest';
 import PDFDocument from 'pdfkit';
 import { scanSecrets, scanSecretsInChanges } from './utils/secretsScanner.js';
+import { deleteFolderRecursive } from './utils/fileHelper.js';
 
 dotenv.config();
 
@@ -281,20 +282,7 @@ function analyzeComplexity(fileContent, filePath) {
   };
 }
 
-// 🟢 Helper to delete a folder recursively
-function deleteFolderRecursive(directoryPath) {
-  if (fs.existsSync(directoryPath)) {
-    fs.readdirSync(directoryPath).forEach((file) => {
-      const curPath = path.join(directoryPath, file);
-      if (fs.lstatSync(curPath).isDirectory()) {
-        deleteFolderRecursive(curPath);
-      } else {
-        fs.unlinkSync(curPath);
-      }
-    });
-    fs.rmdirSync(directoryPath);
-  }
-}
+// Note: deleteFolderRecursive function has been refactored and imported from ./utils/fileHelper.js
 
 // 🟢 Route: GitHub Import & AI Review
 app.post('/api/analyze', async (req, res) => {
