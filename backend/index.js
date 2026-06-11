@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { Octokit } from '@octokit/rest';
 import PDFDocument from 'pdfkit';
 import { scanSecrets, scanSecretsInChanges } from './utils/secretsScanner.js';
+import { verifyPort } from './utils/envVerifier.js';
 
 dotenv.config();
 
@@ -16,7 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = verifyPort(process.env.PORT || 5000);
 
 // Enable CORS
 app.use(cors());
