@@ -76,6 +76,7 @@ interface AnalysisData {
 interface BackendResponse {
   success: boolean;
   repoName: string;
+  sessionId?: string;
   filesReviewedCount: number;
   analysis: AnalysisData;
   _mock?: boolean;
@@ -315,6 +316,9 @@ export default function App() {
   // Loading & Flow State
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState("");
+
+  // Active session ID for chat correlation
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Response & View State
   const [analysisResult, setAnalysisResult] = useState<BackendResponse | null>(
@@ -664,6 +668,7 @@ export default function App() {
           message: userMessage,
           history: chatHistory,
           model: selectedModel,
+          sessionId: activeSessionId,
         }),
       });
 
@@ -796,6 +801,7 @@ export default function App() {
   const loadAuditFromHistory = (entry: AuditHistoryEntry) => {
     setRepoUrl(entry.repoUrl);
     setAnalysisResult(entry.response);
+    setActiveSessionId(entry.response.sessionId ?? null);
     setApiError(null);
     setIsLoading(false);
     setActiveDashboardView('audit');
@@ -869,8 +875,9 @@ export default function App() {
 
       const data: BackendResponse = await response.json();
       setAnalysisResult(data);
+      setActiveSessionId(data.sessionId ?? null);
       persistAuditHistory(data);
-      
+
       // Select the first file reviewed automatically
       const filesList = Object.keys(data.analysis.fileReviews);
       if (filesList.length > 0) {
@@ -944,6 +951,7 @@ export default function App() {
             activeSetRef.current = true;
             setActiveRepoId(repo.id);
             setAnalysisResult(data);
+            setActiveSessionId(data.sessionId ?? null);
             const filesList = Object.keys(data.analysis.fileReviews);
             if (filesList.length > 0) setSelectedFile(filesList[0]);
           }
@@ -990,11 +998,13 @@ export default function App() {
           setTimeout(() => {
             setActiveRepoId(done.id);
             setAnalysisResult(done.response ?? null);
+            setActiveSessionId(done.response?.sessionId ?? null);
           }, 0);
         } else {
           setTimeout(() => {
             setActiveRepoId(null);
             setAnalysisResult(null);
+            setActiveSessionId(null);
           }, 0);
         }
       }
@@ -1519,6 +1529,7 @@ export default function App() {
                               if (repo.status === 'done' && repo.response) {
                                 setActiveRepoId(repo.id);
                                 setAnalysisResult(repo.response);
+                                setActiveSessionId(repo.response.sessionId ?? null);
                                 const files = Object.keys(repo.response.analysis.fileReviews);
                                 if (files.length > 0) setSelectedFile(files[0]);
                               }
