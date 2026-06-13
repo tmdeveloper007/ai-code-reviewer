@@ -187,6 +187,19 @@ Format your JSON precisely as:
         result["mermaidDiagram"] = sanitize_ai_output(result["mermaidDiagram"])
       if "generatedReadme" in result:
         result["generatedReadme"] = sanitize_ai_output(result["generatedReadme"])
+      if "fileReviews" in result and isinstance(result["fileReviews"], dict):
+        for _file, review in result["fileReviews"].items():
+          if not isinstance(review, dict):
+            continue
+          for category in ("bugs", "security", "optimization", "styling"):
+            items = review.get(category)
+            if not isinstance(items, list):
+              continue
+            for item in items:
+              if isinstance(item, dict) and "suggestion" in item:
+                item["suggestion"] = sanitize_ai_output(str(item["suggestion"]))
+              if isinstance(item, dict) and "description" in item:
+                item["description"] = sanitize_ai_output(str(item["description"]))
       return result
       
     except Exception as e:
@@ -262,7 +275,7 @@ Guidelines:
             temperature=0.4
         )
         response_content = completion.choices[0].message.content
-        return {"response": response_content}
+        return {"response": sanitize_ai_output(response_content)}
         
     except Exception as e:
         print(f"❌ Groq Chat API Call Failed: {e}")
@@ -359,7 +372,7 @@ If no issues are found, reply with an empty array: []"""
                         comments.append({
                             "path": file.path,
                             "line": int(line_num),
-                            "body": f"<!-- RepoSage Review Comment -->\n{comment_body}"
+                            "body": f"<!-- RepoSage Review Comment -->\n{sanitize_ai_output(comment_body)}"
                         })
         except Exception as e:
             print(f"⚠️ Error reviewing file {file.path} on Groq: {e}")
