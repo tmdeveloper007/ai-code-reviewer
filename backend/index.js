@@ -502,16 +502,51 @@ app.post('/api/issues/create', async (req, res) => {
     return res.status(400).json({ error: 'GITHUB_PAT is not configured in backend/.env.' });
   }
 
-  if (!repoUrl || !title || !body) {
-    return res.status(400).json({ error: 'Repository URL, title, and body are required.' });
+  // Validate repoUrl shape (prevent abuse of the GITHUB_PAT)
+  if (typeof repoUrl !== 'string' || !repoUrl) {
+    return res.status(400).json({ error: 'Repository URL is required.' });
+  }
+  const ISSUE_GH_URL_REGEX = /^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/[A-Za-z0-9_.-]{1,100}\/?$/i;
+  if (!ISSUE_GH_URL_REGEX.test(repoUrl)) {
+    return res.status(400).json({ error: 'Invalid GitHub repository URL. Only https://github.com/ URLs are accepted.' });
+  }
+
+  // Validate title and body lengths (GitHub limits: title 256, body 65536)
+  if (typeof title !== 'string' || title.length < 1 || title.length > 256) {
+    return res.status(400).json({ error: 'Title is required and must be 1-256 characters.' });
+  }
+  if (typeof body !== 'string' || body.length < 1 || body.length > 65536) {
+    return res.status(400).json({ error: 'Body is required and must be 1-65536 characters.' });
+  }
+
+  // Validate labels shape
+  if (!Array.isArray(labels)) {
+    return res.status(400).json({ error: 'Labels must be an array of strings.' });
+  }
+  if (labels.length > 10) {
+    return res.status(400).json({ error: 'At most 10 labels are allowed.' });
+  }
+  for (const label of labels) {
+    if (typeof label !== 'string' || label.length < 1 || label.length > 50) {
+      return res.status(400).json({ error: 'Each label must be a 1-50 character string.' });
+    }
   }
 
   try {
-    // Extract owner and repo from URL (e.g., https://github.com/owner/repo)
-    const cleanUrl = repoUrl.replace('.git', '').replace(/\/$/, '');
-    const parts = cleanUrl.split('/');
-    const repo = parts.pop();
-    const owner = parts.pop();
+    // Parse owner/repo from URL using URL parser (more robust than string.split)
+    let owner, repo;
+    try {
+      const cleaned = repoUrl.replace(/\.git$/, '').replace(/\/$/, '');
+      const u = new URL(cleaned);
+      if (u.hostname !== 'github.com' && u.hostname !== 'www.github.com') {
+        throw new Error('not github');
+      }
+      const segs = u.pathname.split('/').filter(Boolean);
+      owner = segs[0];
+      repo = segs[1];
+    } catch {
+      return res.status(400).json({ error: 'Invalid GitHub repository URL structure.' });
+    }
 
     if (!owner || !repo) {
       return res.status(400).json({ error: 'Invalid GitHub repository URL structure.' });
