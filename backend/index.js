@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { exec, spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -239,8 +240,24 @@ function deleteFolderRecursive(directoryPath) {
   }
 }
 
+// Rate limiters for expensive endpoints (DoS / quota protection)
+const analyzeLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5,                   // 5 requests / 5 min / IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many analyze requests. Please wait a few minutes and try again.' },
+});
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,      // 1 minute
+  max: 30,                  // 30 requests / min / IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many chat requests. Please slow down.' },
+});
+
 // 🟢 Route: GitHub Import & AI Review
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', analyzeLimiter, async (req, res) => {
   const { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile',temperature = 0.7,
      maxTokens = 2048,systemPrompt = ''
    } = req.body;
@@ -372,7 +389,7 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 // 🟢 Route: AI Chat with Repository (session-isolated per issue #59)
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatLimiter, async (req, res) => {
   const { message, history = [], model = 'llama-3.3-70b-versatile', temperature = 0.7, maxTokens = 2048, systemPrompt = 'You are a helpful code reviewer.', sessionId } = req.body;
 
   if (!message) {
