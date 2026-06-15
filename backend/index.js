@@ -56,9 +56,49 @@ let webhookDedupCleanup = null;
 
 if (!webhookDedupCleanup) {
   webhookDedupCleanup = setInterval(() => { processedDeliveries.clear(); }, 60 * 60 * 1000);
-  process.on('SIGTERM', () => { clearInterval(webhookDedupCleanup); });
-  process.on('SIGINT', () => { clearInterval(webhookDedupCleanup); });
 }
+
+// 🟢 Process-level cleanup hooks
+// 1) On shutdown, clean up any leftover clones in temp_repos/ so private-repo
+//    code is not left on disk after a crash/SIGTERM/restart.
+// 2) On uncaughtException / unhandledRejection, attempt best-effort cleanup
+//    and re-throw so the process still exits with the original error.
+function cleanupTempRepos(reason) {
+  if (!fs.existsSync(tempReposDir)) return 0;
+  let cleaned = 0;
+  for (const entry of fs.readdirSync(tempReposDir)) {
+    const full = path.join(tempReposDir, entry);
+    try {
+      deleteFolderRecursive(full);
+      cleaned++;
+    } catch (e) {
+      console.warn(`⚠️ Failed to remove ${full}: ${e.message}`);
+    }
+  }
+  if (cleaned > 0) console.log(`🧹 Cleaned ${cleaned} leftover entries from temp_repos/ (${reason}).`);
+  return cleaned;
+}
+
+process.on('SIGTERM', () => {
+  clearInterval(webhookDedupCleanup);
+  cleanupTempRepos('SIGTERM');
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  clearInterval(webhookDedupCleanup);
+  cleanupTempRepos('SIGINT');
+  process.exit(0);
+});
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught exception:', err);
+  cleanupTempRepos('uncaughtException');
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Unhandled rejection:', reason);
+  cleanupTempRepos('unhandledRejection');
+  process.exit(1);
+});
 
 // Note: loadIgnorePatterns, isIgnored, and readFilesRecursively are imported from ./utils/ignoreHelper.js
 
