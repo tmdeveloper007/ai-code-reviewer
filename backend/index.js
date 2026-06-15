@@ -396,7 +396,7 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         files: context.files,
         message,
-        history,
+        history: safeHistory,
         model,
         temperature,
         maxTokens,
