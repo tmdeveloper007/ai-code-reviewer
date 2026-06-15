@@ -32,6 +32,7 @@ Developers spend **60% of their time** reading and reviewing code. **RepoSage** 
 - [🏗️ Architecture](#️-architecture)
 - [🛠️ Tech Stack](#️-tech-stack)
 - [⚡ Quick Start](#-quick-start)
+- [🔑 Configuration](#-configuration)
 - [🤖 GitHub Action Integration](#-github-action-integration)
 - [📊 API Reference](#-api-reference)
 - [🗺️ Roadmap](#️-roadmap)
@@ -219,6 +220,45 @@ npm run dev              # Starts on http://localhost:3000
 ```
 
 > 💡 **Tip**: Open `http://localhost:3000` in your browser, paste any public GitHub repo URL, and click **Analyze** to see RepoSage in action!
+
+---
+
+
+## 🔑 Configuration
+
+The backend and AI engine both read **the same** environment variable for the Groq API key: `VITE_GROQ_API_KEY`.
+
+> **Why the `VITE_` prefix?** The variable name comes from the original Vite frontend; the backend reuses the same name for consistency.
+
+### 1. Get a key
+Create a free key at <https://console.groq.com/keys> (no credit card required).
+
+### 2. Put it in **both** `.env` files
+
+```bash
+# backend/.env
+VITE_GROQ_API_KEY=gsk_your_key_here
+```
+
+```bash
+# ai-engine/.env
+VITE_GROQ_API_KEY=gsk_your_key_here
+```
+
+> **Heads up**: the same value must be in *both* files. They are loaded from independent process environments and do not share state.
+
+### 3. Optional environment variables
+
+| Variable | Where | Default | Purpose |
+|---|---|---|---|
+| `VITE_GROQ_API_KEY` | backend, ai-engine | — | **Required** for real AI reviews. If missing, the backend falls back to mock reviews and the AI engine logs `Running in sandbox mode`. |
+| `PORT` | backend | `5000` | Express listen port |
+| `AI_ENGINE_URL` | backend | `http://localhost:8000` | Where to forward review/chat requests |
+| `GITHUB_PAT` | backend | — | Enables `/api/issues/create` and the PR-review webhook |
+| `WEBHOOK_SECRET` | backend | — | Enables HMAC `X-Hub-Signature-256` verification on `/api/webhook` |
+| `CORS_ORIGINS` | backend | `http://localhost:3000` | Comma-separated allowlist for CORS |
+
+> **Sandbox mode** (no Groq key set): the backend uses `mockAIReview` to return canned findings. This is great for local UI development but **not** for production use.
 
 ---
 

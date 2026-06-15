@@ -1003,5 +1003,7 @@ app.post('/api/reports/pdf', (req, res) => {
 });
 
 app.listen(PORT, () => {
+  const hasGroq = !!process.env.VITE_GROQ_API_KEY;
   console.log(`🟢 RepoSage Backend running on http://localhost:${PORT}`);
+  console.log(`🔑 Groq API key: ${hasGroq ? '✅ configured' : '⚠️  NOT set — running in mock/sandbox mode. See README § Configuration to set VITE_GROQ_API_KEY.'}`);
 });
