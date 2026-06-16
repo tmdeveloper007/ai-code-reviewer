@@ -7,6 +7,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Octokit } from '@octokit/rest';
 import PDFDocument from 'pdfkit';
+import { requireApiKey } from './utils/authMiddleware.js';
 import rateLimit from 'express-rate-limit';
 import { scanSecrets, scanSecretsInChanges } from './utils/secretsScanner.js';
 import { loadIgnorePatterns, readFilesRecursively } from './utils/ignoreHelper.js';
@@ -113,7 +114,7 @@ process.on('SIGINT', () => {
 });
 
 // 🟢 Route: GitHub Import & AI Review
-app.post('/api/analyze', analyzeLimiter, async (req, res) => {
+app.post('/api/analyze', requireApiKey, analyzeLimiter, async (req, res) => {
   const { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile',temperature = 0.7,
      maxTokens = 2048, systemPrompt = ''
    } = req.body;
@@ -265,7 +266,7 @@ app.post('/api/analyze', analyzeLimiter, async (req, res) => {
 });
 
 // 🟢 Route: AI Chat with Repository (session-isolated per issue #59)
-app.post('/api/chat', chatLimiter, async (req, res) => {
+app.post('/api/chat', requireApiKey, chatLimiter, async (req, res) => {
   const { message, history = [], model = 'llama-3.3-70b-versatile', temperature = 0.7, maxTokens = 2048, systemPrompt = 'You are a helpful code reviewer.', sessionId } = req.body;
 
   if (!message) {
@@ -378,7 +379,7 @@ app.post('/api/webhook', async (req, res) => {
 });
 
 // 🟢 Route: Create GitHub Issue automatically for Code Reviews
-app.post('/api/issues/create', async (req, res) => {
+app.post('/api/issues/create', requireApiKey, async (req, res) => {
   const { repoUrl, title, body, labels = [] } = req.body;
   const token = process.env.GITHUB_PAT;
 
@@ -574,7 +575,7 @@ Please review my feedback and suggestions below. Happy coding! 🚀`,
 
 
 // 🟢 Route: Export Review Report to HTML
-app.post('/api/reports/html', (req, res) => {
+app.post('/api/reports/html', requireApiKey, (req, res) => {
   const { repoName, analysis } = req.body;
   if (!repoName || !analysis) {
     return res.status(400).json({ error: 'Repository name and analysis result are required.' });
@@ -725,7 +726,7 @@ app.post('/api/reports/html', (req, res) => {
 });
 
 // 🟢 Route: Export Review Report to PDF
-app.post('/api/reports/pdf', (req, res) => {
+app.post('/api/reports/pdf', requireApiKey, (req, res) => {
   const { repoName, analysis } = req.body;
   if (!repoName || !analysis) {
     return res.status(400).json({ error: 'Repository name and analysis result are required.' });

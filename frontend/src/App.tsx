@@ -617,7 +617,10 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/issues/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_REPOSAGE_API_KEY
+        },
         body: JSON.stringify({
           repoUrl,
           title,
@@ -668,7 +671,10 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_REPOSAGE_API_KEY
+        },
         body: JSON.stringify({
           message: userMessage,
           history: chatHistory,
@@ -877,7 +883,10 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/analyze`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_REPOSAGE_API_KEY
+        },
         body: JSON.stringify({
           repoUrl,
           company,
@@ -953,7 +962,10 @@ export default function App() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/analyze`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-api-key": import.meta.env.VITE_REPOSAGE_API_KEY
+          },
           signal: controller.signal,
           body: JSON.stringify({
             repoUrl: repo.url,
@@ -1155,7 +1167,10 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/reports/html`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-api-key": import.meta.env.VITE_REPOSAGE_API_KEY
+        },
         body: JSON.stringify({
           repoName: result.repoName,
           analysis: result.analysis,
@@ -1183,7 +1198,10 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/reports/pdf`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_REPOSAGE_API_KEY
+        },
         body: JSON.stringify({
           repoName: result.repoName,
           analysis: result.analysis
