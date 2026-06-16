@@ -80,25 +80,21 @@ Scaling RepoSage for power users and teams — dashboards, exports, and configur
 > [!TIP]
 > **Want to work on Phase 4?** Check our [issues](https://github.com/kalyan-1845/ai-code-reviewer/issues) tagged with `gssoc26` — many of these features are open for community contribution!
 
----
+## Phase 5: GSSoC Active Epics 🚀
 
-## Phase 5: Enterprise & Advanced 📋
+> **Status:** `░░░░░░░░░░░░░░░░░░░░ 0%` — **Active / Community Driven** 🚀
 
-> **Status:** `░░░░░░░░░░░░░░░░░░░░ 0%` — **Planned** 📋
+We have opened 45 new granular issues across 3 major architectural epics for our GSSoC contributors!
 
-Enterprise-grade features for organizations and professional development teams.
-
-| # | Feature | Status | Description |
-|---|---------|--------|-------------|
-| 1 | 👥 Team Collaboration Workspace | 📋 Planned | Shared workspaces for team-based code review |
-| 2 | 🔐 RBAC Access Controls | 📋 Planned | Role-based access control (Admin, Reviewer, Viewer) |
-| 3 | 📏 Custom Rule Engine | 📋 Planned | Define custom lint rules and review policies per project |
-| 4 | 📤 SARIF / SAST Format Export | 📋 Planned | Industry-standard security report formats for tool integration |
-| 5 | 🧩 VS Code Extension | 📋 Planned | Review code directly inside Visual Studio Code |
-| 6 | 🌐 Self-hosted Deployment | 📋 Planned | Docker-based self-hosted option for air-gapped environments |
-| 7 | 📈 Analytics & Metrics Dashboard | 📋 Planned | Track code quality trends over time across repos |
-| 8 | 🔄 Automated Refactoring Bots | 📋 Planned | Standalone agents that constantly submit PRs to clear tech-debt |
-| 9 | 📦 Intelligent Dependency Upgrader | 📋 Planned | Upgrades outdated packages and fixes breaking syntax changes |
+| # | Feature Epic | Status | Description |
+|---|--------------|--------|-------------|
+| 1 | 🔌 **Native VS Code Extension** | 🚀 Active | Review code directly inside Visual Studio Code |
+| 2 | 🧠 **AI RAG (Vector DB) System** | 🚀 Active | Upgrade chat with ChromaDB to query entire repositories using embeddings |
+| 3 | 📊 **Multi-Repo Analytics Dashboard** | 🚀 Active | Track code quality trends over time across repos for Engineering Managers |
+| 4 | 👥 Team Collaboration Workspace | 📋 Planned | Shared workspaces for team-based code review |
+| 5 | 🔐 RBAC Access Controls | 📋 Planned | Role-based access control (Admin, Reviewer, Viewer) |
+| 6 | 📤 SARIF / SAST Format Export | 📋 Planned | Industry-standard security report formats for tool integration |
+| 7 | 🔄 Automated Refactoring Bots | 📋 Planned | Standalone agents that constantly submit PRs to clear tech-debt |
 
 ---
 

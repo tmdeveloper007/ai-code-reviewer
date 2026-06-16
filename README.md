@@ -284,7 +284,19 @@ See our full **[ROADMAP.md](./ROADMAP.md)** for the detailed project roadmap.
 | **Phase 2**: Core Enhancements | ✅ Complete | 13+ languages, report export, security scanner, model selection |
 | **Phase 3**: Advanced Features | ✅ Complete | AI repo chat, architecture diagrams, PR bot, complexity metrics |
 | **Phase 4**: Community & Scale | 🚧 In Progress | Audit history, PDF export, settings modal, composition charts |
-| **Phase 5**: Enterprise | 📋 Planned | Team workspaces, RBAC, VS Code extension, SARIF export |
+| **Phase 5**: GSSoC Epics | 🚀 Active | **VS Code Extension**, **AI RAG Vector System**, **Analytics Dashboard** |
+
+---
+
+## 🌟 Active GSSoC '26 Epics
+
+We have recently opened **45 new granular issues** across 3 massive architectural epics for our GSSoC contributors! 
+
+1. **🔌 Native VS Code Extension:** Bring RepoSage directly into the developer's IDE.
+2. **🧠 AI RAG System (Vector DB):** Upgrade our chat feature with ChromaDB to query entire repositories using embeddings.
+3. **📊 Multi-Repo Analytics Dashboard:** Build an enterprise-grade tracking dashboard for engineering managers.
+
+Want to help us build these? Jump into our [Issues tab](https://github.com/kalyan-1845/ai-code-reviewer/issues) and filter by the `epic` or `gssoc` labels!
 
 ---
 
