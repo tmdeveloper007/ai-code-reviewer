@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import SettingsModal from "./components/SettingsModal";
 import RepositoryOverview from './RepositoryOverview';
+import RepositorySummaryCard from './RepositorySummaryCard';
 import {
   Github,
   Terminal,
@@ -2629,6 +2630,7 @@ export default function App() {
                 boxSizing: "border-box",
               }}
             >
+              <RepositorySummaryCard result={activeResult ?? analysisResult} />
               <RepositoryOverview
                 files={Object.keys(analysisResult.analysis.fileReviews).map((filePath) => {
                   const ext = filePath.split('.').pop()?.toLowerCase() || 'other';
