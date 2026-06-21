@@ -44,6 +44,25 @@ class TestLanguageDetection:
 
 
 class TestGenerateChunkId:
+
+    def test_different_files_produce_different_ids(self):
+        cid1 = _generate_chunk_id("file_a.py", 0)
+        cid2 = _generate_chunk_id("file_b.py", 0)
+        assert cid1 != cid2
+
+    def test_empty_filename_still_produces_id(self):
+        cid = _generate_chunk_id("", 0)
+        assert isinstance(cid, str)
+        assert len(cid) == 16
+
+    def test_whitespace_only_filename(self):
+        cid = _generate_chunk_id("   ", 0)
+        assert isinstance(cid, str)
+        assert len(cid) == 16
+
+    def test_same_file_different_indices_no_collision(self):
+        ids = [_generate_chunk_id("file.py", i) for i in range(20)]
+        assert len(ids) == len(set(ids)), "All chunk IDs for the same file should be unique"
     def test_chunk_id_format(self):
         cid = _generate_chunk_id("file.py", 0)
         assert isinstance(cid, str)
