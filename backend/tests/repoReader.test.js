@@ -13,6 +13,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const fixtureDir = path.join(__dirname, 'fixtures', 'repoReader_fixture');
 
+// ---------- REPO_READER_DEFAULTS constant tests ----------
+
+test('REPO_READER_DEFAULTS contains all expected cap fields', () => {
+  assert.ok(REPO_READER_DEFAULTS !== null);
+  assert.ok(typeof REPO_READER_DEFAULTS === 'object');
+  assert.ok(Object.isFrozen(REPO_READER_DEFAULTS), 'REPO_READER_DEFAULTS should be frozen');
+  assert.deepEqual(REPO_READER_DEFAULTS.extensions, ['.js', '.py', '.ts']);
+  assert.equal(REPO_READER_DEFAULTS.maxFiles, 500);
+  assert.equal(REPO_READER_DEFAULTS.maxDepth, 10);
+  assert.equal(REPO_READER_DEFAULTS.maxBytes, 1024 * 1024);
+  assert.equal(REPO_READER_DEFAULTS.cloneTimeoutMs, 120000);
+});
+
+test('REPO_READER_DEFAULTS.maxFiles is a positive integer', () => {
+  assert.equal(Number.isInteger(REPO_READER_DEFAULTS.maxFiles), true);
+  assert.ok(REPO_READER_DEFAULTS.maxFiles > 0);
+});
+
+test('REPO_READER_DEFAULTS.maxDepth is a positive integer', () => {
+  assert.equal(Number.isInteger(REPO_READER_DEFAULTS.maxDepth), true);
+  assert.ok(REPO_READER_DEFAULTS.maxDepth > 0);
+});
+
+test('REPO_READER_DEFAULTS.maxBytes is at least 1MB', () => {
+  assert.ok(REPO_READER_DEFAULTS.maxBytes >= 1024 * 1024);
+});
+
 // ---------- Pure unit tests (no network) ----------
 
 test('readCodeFilesFromLocalDir returns an array with the expected shape', () => {
@@ -91,6 +118,49 @@ test('readCodeFilesFromLocalDir respects an explicit extensions override', () =>
 test('readCodeFilesFromLocalDir respects the maxFiles cap', () => {
   const result = readCodeFilesFromLocalDir(fixtureDir, { maxFiles: 1 });
   assert.equal(result.length, 1);
+});
+
+test('readCodeFilesFromLocalDir respects the maxDepth cap', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir, { maxDepth: 0 });
+  // With depth 0, only the root dir's direct files are returned (no subdir files)
+  // The fixture has all files under src/ subdirectory
+  const paths = result.map((e) => e.path);
+  // src/ files should NOT appear when maxDepth is 0
+  assert.ok(!paths.some((p) => p.startsWith('src/')), 'src/ should be beyond maxDepth 0');
+});
+
+test('readCodeFilesFromLocalDir skips files exceeding maxBytes', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir, { maxBytes: 1 });
+  // All fixture files are larger than 1 byte, so result should be empty
+  assert.equal(result.length, 0);
+});
+
+test('readCodeFilesFromLocalDir handles a non-existent directory gracefully', () => {
+  const result = readCodeFilesFromLocalDir('/non/existent/path/nowhere');
+  assert.deepEqual(result, []);
+});
+
+test('readCodeFilesFromLocalDir handles extensions without leading dot', () => {
+  // Extensions without leading dot should still be accepted
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['py', 'JS'] });
+  const paths = result.map((e) => e.path);
+  assert.ok(paths.some((p) => p.endsWith('.py')), 'Should include .py files');
+  assert.ok(paths.some((p) => p.endsWith('.js')), 'Should include .js files (case-insensitive)');
+});
+
+test('readCodeFilesFromLocalDir extensions option is case-insensitive', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['.PY', '.Ts'] });
+  const extensions = new Set(result.map((e) => path.extname(e.path).toLowerCase()));
+  assert.ok(extensions.has('.py'), 'Should include .py');
+  assert.ok(extensions.has('.ts'), 'Should include .ts');
+});
+
+test('readCodeFilesFromLocalDir populates correct sizeBytes', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir);
+  for (const entry of result) {
+    assert.ok(entry.sizeBytes > 0, `sizeBytes should be positive for ${entry.path}`);
+    assert.ok(Number.isInteger(entry.sizeBytes), `sizeBytes should be integer for ${entry.path}`);
+  }
 });
 
 // ---------- Network-touching test (real clone) ----------
