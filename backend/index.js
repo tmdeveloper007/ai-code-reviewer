@@ -77,30 +77,42 @@ function cleanupTempRepos() {
     fs.rmSync(tempReposDir, { recursive: true, force: true });
   }
 }
-process.on('SIGINT', () => { cleanupTempRepos(); process.exit(0); });
-process.on('SIGTERM', () => { cleanupTempRepos(); process.exit(0); });
-process.on('exit', cleanupTempRepos);
+function onShutdown() { cleanupTempRepos(); cleanupTimers(); process.exit(0); }
+process.on('SIGINT', onShutdown);
+process.on('SIGTERM', onShutdown);
 
 // Session-isolated repository contexts for chat functionality (issue #59)
 const repoContexts = new Map();
 const CONTEXT_TTL = 30 * 60 * 1000; // 30 minutes
+const MAX_REPO_CONTEXTS = 100;
 
-// Periodic cleanup of stale contexts
-setInterval(() => {
+// Webhook deduplication state (module scope to persist across requests)
+const activeReviews = new Set();
+const processedDeliveries = new Map();
+const DELIVERY_TTL = 60 * 60 * 1000; // 1 hour
+const MAX_DELIVERY_ENTRIES = 5000;
+
+// Evict oldest entry from a Map when over max size
+function evictLRU(map, maxSize) {
+  if (map.size <= maxSize) return;
+  const oldest = map.keys().next().value;
+  if (oldest !== undefined) map.delete(oldest);
+}
+
+// Periodic cleanup of stale contexts with LRU eviction
+const contextCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [sessionId, entry] of repoContexts) {
     if (now - entry.timestamp > CONTEXT_TTL) {
       repoContexts.delete(sessionId);
     }
   }
+  while (repoContexts.size > MAX_REPO_CONTEXTS) {
+    evictLRU(repoContexts, MAX_REPO_CONTEXTS);
+  }
 }, 60 * 1000);
 
-// Webhook deduplication state (module scope to persist across requests)
-const activeReviews = new Set();
-const processedDeliveries = new Map();
-const DELIVERY_TTL = 60 * 60 * 1000; // 1 hour
-
-// Periodic cleanup of expired delivery entries (TTL-based eviction)
+// Periodic cleanup of expired delivery entries with size cap
 const dedupCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [deliveryId, timestamp] of processedDeliveries) {
@@ -108,15 +120,23 @@ const dedupCleanupTimer = setInterval(() => {
       processedDeliveries.delete(deliveryId);
     }
   }
+  while (processedDeliveries.size > MAX_DELIVERY_ENTRIES) {
+    evictLRU(processedDeliveries, MAX_DELIVERY_ENTRIES);
+  }
 }, 60 * 1000);
 
+// Log cache metrics periodically
+setInterval(() => {
+  const repoMemEstimate = repoContexts.size * 102400;
+  const deliveryMemEstimate = processedDeliveries.size * 50;
+  console.log(`[cache] repoContexts=${repoContexts.size}/${MAX_REPO_CONTEXTS} ~${(repoMemEstimate / 1024 / 1024).toFixed(1)}MB | processedDeliveries=${processedDeliveries.size}/${MAX_DELIVERY_ENTRIES} ~${(deliveryMemEstimate / 1024 / 1024).toFixed(2)}MB`);
+}, 5 * 60 * 1000);
+
 // Clean up timers on server shutdown
-process.on('SIGTERM', () => {
+function cleanupTimers() {
   clearInterval(dedupCleanupTimer);
-});
-process.on('SIGINT', () => {
-  clearInterval(dedupCleanupTimer);
-});
+  clearInterval(contextCleanupTimer);
+}
 
 // 🟢 Route: GitHub Import & AI Review
 app.post('/api/analyze', requireApiKey, analyzeLimiter, async (req, res) => {

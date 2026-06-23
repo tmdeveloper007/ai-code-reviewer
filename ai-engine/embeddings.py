@@ -1,12 +1,16 @@
 import os
 import hashlib
+import threading
 from sentence_transformers import SentenceTransformer
 
 _EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 _model = None
 
-_embedding_cache = {}
+_MAX_CACHE_SIZE = int(os.getenv("MAX_EMBEDDING_CACHE_SIZE", "10000"))
 _cache_enabled = os.getenv("EMBEDDING_CACHE_ENABLED", "true").lower() == "true"
+_embedding_cache = {}
+_cache_lock = threading.Lock()
+_cache_access_order = []
 
 
 def _compute_content_hash(content: str) -> str:
@@ -40,25 +44,38 @@ def get_or_compute_embedding(file_path: str, content: str) -> list[float]:
     if not _cache_enabled:
         return embed_text(content)
     content_hash = _compute_content_hash(content)
-    cached = _embedding_cache.get(file_path)
-    if cached is not None and cached["content_hash"] == content_hash:
-        return cached["embedding"]
+    with _cache_lock:
+        cached = _embedding_cache.get(file_path)
+        if cached is not None and cached["content_hash"] == content_hash:
+            return cached["embedding"]
     embedding = embed_text(content)
-    _embedding_cache[file_path] = {"content_hash": content_hash, "embedding": embedding}
+    with _cache_lock:
+        _embedding_cache[file_path] = {"content_hash": content_hash, "embedding": embedding}
+        _cache_access_order.append(file_path)
+        if len(_embedding_cache) > _MAX_CACHE_SIZE:
+            oldest = _cache_access_order.pop(0)
+            _embedding_cache.pop(oldest, None)
     return embedding
 
 
 def invalidate_cache_for_file(file_path: str) -> None:
-    _embedding_cache.pop(file_path, None)
+    with _cache_lock:
+        _embedding_cache.pop(file_path, None)
+        if file_path in _cache_access_order:
+            _cache_access_order.remove(file_path)
 
 
 def clear_embedding_cache() -> None:
-    _embedding_cache.clear()
+    with _cache_lock:
+        _embedding_cache.clear()
+        _cache_access_order.clear()
 
 
 def get_cache_stats() -> dict:
-    return {
-        "enabled": _cache_enabled,
-        "size": len(_embedding_cache),
-        "keys": list(_embedding_cache.keys()),
-    }
+    with _cache_lock:
+        return {
+            "enabled": _cache_enabled,
+            "size": len(_embedding_cache),
+            "max_size": _MAX_CACHE_SIZE,
+            "keys": list(_embedding_cache.keys()),
+        }
