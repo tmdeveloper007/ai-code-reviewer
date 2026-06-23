@@ -678,16 +678,7 @@ export default function Dashboard() {
     } catch (err: any) {
       console.error(err);
       const errMsg = err.message || "Chat service unavailable.";
-      addToast(errMsg, "error");
-      setChatHistory((prev) =>
-        truncateChatHistory([
-          ...prev,
-          {
-            role: "assistant",
-            content: `❌ Error: ${errMsg}`,
-          },
-        ])
-      );
+      setApiError(errMsg);
     } finally {
       setIsChatLoading(false);
     }
