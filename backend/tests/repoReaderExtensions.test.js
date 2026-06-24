@@ -155,7 +155,7 @@ test('REPO_READER_DEFAULTS clone is not affected by mutation attempts', () => {
   );
 });
 
-test('readCodeFilesFromLocalDir returns empty array for empty directory', () => {
+test('readCodeFilesFromLocalDir returns empty array for empty directory', async () => {
   const fs = await import('fs');
   const path = await import('path');
   const os = await import('os');
@@ -169,7 +169,7 @@ test('readCodeFilesFromLocalDir returns empty array for empty directory', () => 
   }
 });
 
-test('readCodeFilesFromLocalDir returns empty array when only unsupported file types exist', () => {
+test('readCodeFilesFromLocalDir returns empty array when only unsupported file types exist', async () => {
   const fs = await import('fs');
   const path = await import('path');
   const os = await import('os');
@@ -187,7 +187,7 @@ test('readCodeFilesFromLocalDir returns empty array when only unsupported file t
   }
 });
 
-test('readCodeFilesFromLocalDir returns files when extension filter includes unsupported types', () => {
+test('readCodeFilesFromLocalDir returns files when extension filter includes unsupported types', async () => {
   const fs = await import('fs');
   const path = await import('path');
   const os = await import('os');
