@@ -84,11 +84,15 @@ test('verifyWebhookSignature should handle null/undefined body gracefully', () =
 test('verifyWebhookSignature should return false for non-string body types', () => {
   const secret = 'type_test';
   const hmac = crypto.createHmac('sha256', secret);
+  // Signature computed from 'body' string
   const expectedSignature = `sha256=${hmac.update('body').digest('hex')}`;
 
-  // number body - HMAC computes on 'body' not 123, so should be invalid
-  const isValidNumber = verifyWebhookSignature(123, expectedSignature, secret);
-  assert.equal(isValidNumber, false);
+  // Non-string body types (number, boolean, object) are treated as empty string,
+  // so HMAC digest differs from the expected one -> returns false
+  assert.equal(verifyWebhookSignature(123, expectedSignature, secret), false);
+  assert.equal(verifyWebhookSignature(true, expectedSignature, secret), false);
+  assert.equal(verifyWebhookSignature({}, expectedSignature, secret), false);
+  assert.equal(verifyWebhookSignature(['array'], expectedSignature, secret), false);
 });
 
 test('verifyWebhookSignature should return false when signature is only whitespace', () => {
