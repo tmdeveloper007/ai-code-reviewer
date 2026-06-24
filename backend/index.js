@@ -128,7 +128,7 @@ process.on('SIGTERM', onShutdown);
 // handles expiry automatically — no in-process Map or setInterval needed.
 
 // Webhook deduplication and queuing state (module scope to persist across requests)
-const reviewQueues = new Map(); // reviewKey -> [{ owner, repo, pullNumber, headSha }, ...]
+const reviewQueues = new Map(); // reviewKey -> latest pending review, or null while active
 const processedDeliveries = new Map();
 const DELIVERY_TTL = 60 * 60 * 1000; // 1 hour
 const MAX_DELIVERY_ENTRIES = 5000;
@@ -625,11 +625,11 @@ app.post('/api/issues/create', requireApiKey, async (req, res) => {
 // 🟢 Webhook review queuing — prevents race conditions from rapid webhook events
 function enqueueWebhookReview(owner, repo, pullNumber, headSha, reviewKey) {
   if (!reviewQueues.has(reviewKey)) {
-    reviewQueues.set(reviewKey, []);
+    reviewQueues.set(reviewKey, null);
     dispatchReview(owner, repo, pullNumber, headSha, reviewKey);
   } else {
-    reviewQueues.get(reviewKey).push({ owner, repo, pullNumber, headSha });
-    console.log(`📥 Queued review for ${reviewKey}@${headSha.substring(0,7)} (${reviewQueues.get(reviewKey).length} waiting)`);
+    reviewQueues.set(reviewKey, { owner, repo, pullNumber, headSha });
+    console.log(`📥 Replaced pending review with latest head for ${reviewKey}@${headSha.substring(0,7)}`);
   }
 }
 
@@ -639,9 +639,9 @@ async function dispatchReview(owner, repo, pullNumber, headSha, reviewKey) {
   } catch (err) {
     console.error(`❌ Async PR Review Error:`, err);
   } finally {
-    const queue = reviewQueues.get(reviewKey);
-    if (queue && queue.length > 0) {
-      const next = queue.shift();
+    const next = reviewQueues.get(reviewKey);
+    if (next) {
+      reviewQueues.set(reviewKey, null);
       dispatchReview(next.owner, next.repo, next.pullNumber, next.headSha, reviewKey);
     } else {
       reviewQueues.delete(reviewKey);
@@ -660,15 +660,24 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
   const octokit = new Octokit({ auth: token });
   console.log(`🔍 Fetching diff for PR #${pullNumber}...`);
 
-  // 1. Fetch Diff from GitHub, pinned to the specific commit that triggered the event
+  const { data: pullRequest } = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: pullNumber
+  });
+  if (headSha && pullRequest.head.sha !== headSha) {
+    console.log(`⏭️ Skipping stale review ${headSha.substring(0, 7)}; current head is ${pullRequest.head.sha.substring(0, 7)}.`);
+    return;
+  }
+
+  // 1. Fetch the diff for the verified current pull-request head.
   const { data: diff } = await octokit.rest.pulls.get({
     owner,
     repo,
     pull_number: pullNumber,
     mediaType: {
       format: 'diff'
-    },
-    ...(headSha && { commit_id: headSha })
+    }
   });
 
   if (!diff) {
