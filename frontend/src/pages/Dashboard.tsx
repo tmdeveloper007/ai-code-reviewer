@@ -677,7 +677,13 @@ export default function Dashboard() {
       );
     } catch (err: any) {
       console.error(err);
-      const errMsg = err.message || "Chat service unavailable.";
+      let errMsg = err.message || "Chat service unavailable.";
+      if (errMsg.includes("Failed to fetch") || errMsg.toLowerCase().includes("offline")) {
+        errMsg = "Backend AI Engine offline. Please ensure the server is running.";
+      } else if (errMsg.toLowerCase().includes("api key") || errMsg.toLowerCase().includes("unauthorized")) {
+        errMsg = "Missing or invalid API Key. Please configure it in settings.";
+        setShowSettings(true);
+      }
       setApiError(errMsg);
     } finally {
       setIsChatLoading(false);
@@ -879,10 +885,14 @@ export default function Dashboard() {
       }
     } catch (err: any) {
       console.error(err);
-      setApiError(
-        err.message ||
-        "Could not connect to the backend server. Make sure node backend is running on port 5000.",
-      );
+      let errMsg = err.message || "Could not connect to the backend server. Make sure node backend is running on port 5000.";
+      if (errMsg.includes("Failed to fetch") || errMsg.toLowerCase().includes("offline")) {
+        errMsg = "Backend AI Engine offline. Please ensure the server is running.";
+      } else if (errMsg.toLowerCase().includes("api key") || errMsg.toLowerCase().includes("unauthorized") || errMsg.includes("not configured")) {
+        errMsg = "Missing or invalid API Key. Please configure it in settings.";
+        setShowSettings(true);
+      }
+      setApiError(errMsg);
     } finally {
       clearInterval(stepInterval);
       setIsLoading(false);
