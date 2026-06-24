@@ -682,6 +682,7 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
 
   const commentsToPost = [];
   const filesToReview = [];
+  let aiReviewCompleted = false;
 
   for (const file of parsedFiles) {
     // Check if file is supported
@@ -721,6 +722,7 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
       });
 
       if (aiResponse.ok) {
+        aiReviewCompleted = true;
         const result = await aiResponse.json();
         if (result.comments && Array.isArray(result.comments)) {
           result.comments.forEach(c => {
@@ -753,7 +755,7 @@ I have audited the code changes in this Pull Request and generated **${commentsT
 Please review my feedback and suggestions below. Happy coding! 🚀`,
       comments: commentsToPost
     });
-  } else {
+  } else if (aiReviewCompleted || filesToReview.length === 0) {
     console.log('🎉 No code issues or recommendations found. Posting approval review...');
     await octokit.rest.pulls.createReview({
       owner,
@@ -777,6 +779,18 @@ Please review my feedback and suggestions below. Happy coding! 🚀`,
     } catch (err) {
       console.warn('⚠️ Could not add gssoc:approved label:', err.message);
     }
+  } else {
+    console.warn('⚠️ AI review did not complete. Posting an inconclusive review instead of approving.');
+    await octokit.rest.pulls.createReview({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      commit_id: headSha,
+      event: 'COMMENT',
+      body: `## RepoSage review could not be completed
+
+The AI review service was unavailable, so this pull request has not been approved automatically. Please retry the review or request a manual review.`
+    });
   }
 }
 
