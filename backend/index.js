@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { Octokit } from '@octokit/rest';
-import { requireApiKey } from './utils/authMiddleware.js';
+import { createFrontendSessionCookie, requireApiKey } from './utils/authMiddleware.js';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import Redis from 'ioredis';
@@ -97,6 +97,14 @@ app.use(express.json({
     req.rawBody = buf;
   }
 }));
+
+app.post('/api/session', requireApiKey, (req, res) => {
+  const sessionCookie = createFrontendSessionCookie(res);
+  if (!sessionCookie) return;
+
+  res.setHeader('Set-Cookie', sessionCookie);
+  return res.json({ success: true });
+});
 
 // Ensure temp_repos folder exists
 const tempReposDir = path.join(__dirname, 'temp_repos');

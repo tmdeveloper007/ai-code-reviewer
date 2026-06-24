@@ -20,4 +20,3 @@ export default function App() {
         </BrowserRouter>
     );
 }
-// resolving conflicts
