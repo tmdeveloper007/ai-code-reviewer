@@ -28,6 +28,9 @@ for env_path in env_paths:
 if not loaded:
     print("⚠️ No .env file found. Running with existing environment variables.")
 
+MAX_FILE_CHARS_PER_FILE = int(os.getenv("MAX_FILE_CHARS_PER_FILE", "1500"))
+MAX_CHAT_FILES = int(os.getenv("MAX_CHAT_FILES", "20"))
+
 def _redact_key(text: str, key: str) -> str:
     if not text or not key:
         return text
@@ -265,8 +268,19 @@ async def analyze_repository(request: AnalyzeRequest):
     }
 
     # 3. Process batches sequentially
+    truncated_files = []
     for idx, batch in enumerate(batches):
-        file_contents_summary = [f"--- File: {f.name} ---\n{f.content[:1500]}" for f in batch]
+        file_contents_summary = []
+        for f in batch:
+            content = f.content[:MAX_FILE_CHARS_PER_FILE]
+            if len(f.content) > MAX_FILE_CHARS_PER_FILE:
+                truncated_files.append({
+                    "name": f.name,
+                    "original_length": len(f.content),
+                    "truncated_length": MAX_FILE_CHARS_PER_FILE
+                })
+                print(f"INFO: Truncated file {f.name} from {len(f.content)} to {MAX_FILE_CHARS_PER_FILE} chars")
+            file_contents_summary.append(f"--- File: {f.name} ---\n{content}")
         contents_text = "\n\n".join(file_contents_summary)
         
         is_first_batch = (idx == 0)
@@ -389,6 +403,7 @@ You must obey the JSON output format above."""
                 print(f"⚠️ Skipping failed batch {idx + 1} and continuing...")
                 continue
                 
+    combined_result["truncatedFiles"] = truncated_files
     return combined_result
 
 # 🟢 Route: AI Chat with Repository Context
@@ -402,11 +417,34 @@ async def chat_with_repository(request: ChatRequest):
     history = request.history
     
     # 1. Build the system prompt injecting repository context
+    message_lower = message.lower()
+    keywords = set(re.findall(r'\b\w+\b', message_lower))
+
+    def score_file(f):
+        name_lower = f.name.lower()
+        score = 0
+        for kw in keywords:
+            if kw in name_lower:
+                score += 1
+        return score
+
+    sorted_files = sorted(files, key=score_file, reverse=True)
+    selected_files = sorted_files[:MAX_CHAT_FILES]
+
     repo_structure = []
     file_contents_summary = []
-    for f in files[:20]:
+    truncated_files_info = []
+    for f in selected_files:
         repo_structure.append(f.name)
-        file_contents_summary.append(f"--- File: {f.name} ---\n{f.content[:1500]}")
+        content = f.content[:MAX_FILE_CHARS_PER_FILE]
+        if len(f.content) > MAX_FILE_CHARS_PER_FILE:
+            truncated_files_info.append({
+                "name": f.name,
+                "original_length": len(f.content),
+                "truncated_length": MAX_FILE_CHARS_PER_FILE
+            })
+            print(f"INFO: Truncated file {f.name} from {len(f.content)} to {MAX_FILE_CHARS_PER_FILE} chars")
+        file_contents_summary.append(f"--- File: {f.name} ---\n{content}")
     structure_text = "\n".join(repo_structure)
     contents_text = "\n\n".join(file_contents_summary)
 
@@ -478,7 +516,7 @@ Guidelines:
             temperature=0.4
         )
         response_content = completion.choices[0].message.content
-        return {"response": sanitize_ai_output(response_content)}
+        return {"response": sanitize_ai_output(response_content), "truncatedFiles": truncated_files_info}
         
     except Exception as e:
         print(f"❌ Groq Chat API Call Failed: {_redact_key(str(e), api_key)}")
