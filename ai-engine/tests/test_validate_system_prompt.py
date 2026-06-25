@@ -158,9 +158,10 @@ class TestSanitizeAiOutputAdditionalEdgeCases:
         result = sanitize_ai_output('<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>')
         assert '<script>' not in result
 
-    def test_style_attribute_with_dangerous_value_is_stripped(self):
+    def test_style_attribute_is_stripped_by_default(self):
         result = sanitize_ai_output('<div style="color:red">Safe</div>')
-        assert '<div' in result
+        assert 'style=' not in result
+        assert '<div>' in result or '<div ' in result
 
     def test_long_input_does_not_hang(self):
         long_text = '<p>' + 'x' * 50000 + '</p>'
