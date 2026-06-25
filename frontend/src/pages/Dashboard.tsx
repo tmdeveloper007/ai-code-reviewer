@@ -95,11 +95,19 @@ const apiFetch = async (path: string, options: RequestInit = {}) => {
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${API_BASE_URL}${path}`, {
+  const request = () => fetch(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers,
   });
+
+  let response = await request();
+  if (response.status === 401) {
+    sessionRequest = null;
+    await ensureApiSession();
+    response = await request();
+  }
+  return response;
 };
 
 // Define Types
