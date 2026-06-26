@@ -309,7 +309,7 @@ app.post('/api/analyze', requireApiKey, analyzeLimiter, async (req, res) => {
         } else {
           throw new Error('AI engine responded with error');
         }
-      } catch (err) {
+    } catch (err) {
         console.warn('⚠️ FastAPI engine not running, falling back to local Express review handler');
         reviewResult = mockAIReview(files, model);
         reviewResult._mock = true;
