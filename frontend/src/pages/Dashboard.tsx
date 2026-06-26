@@ -693,7 +693,7 @@ export default function Dashboard() {
     const userMessage = chatInput;
     setChatInput("");
     setChatHistory((prev) => {
-      const updated = [...prev, { role: "user", content: userMessage }];
+      const updated = [...prev, { role: "user" as const, content: userMessage }];
       try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(updated)); } catch {}
       return updated;
     });
@@ -719,7 +719,7 @@ export default function Dashboard() {
       setChatHistory((prev) => {
         const updated = truncateChatHistory([
           ...prev,
-          { role: "assistant", content: data.response },
+          { role: "assistant" as const, content: data.response },
         ]);
         try { localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(updated)); } catch {}
         return updated;
