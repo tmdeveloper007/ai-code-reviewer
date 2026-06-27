@@ -165,7 +165,7 @@ test('AnalysisCache: invalidate() removes specific entries', () => {
 
   assert.equal(removed, true, 'Should return true for existing key');
   assert.equal(cache.cache.size, 1, 'Should have 1 entry after invalidation');
-  assert.equal(cache.get(key2), { data: 2 }, 'Other entries should remain');
+  assert.deepEqual(cache.get(key2), { data: 2 }, 'Other entries should remain');
 });
 
 test('AnalysisCache: invalidate() returns false for non-existent entries', () => {
