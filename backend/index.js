@@ -490,6 +490,7 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         try {
           await ensureConnection();
           await Analytics.create({
+            sessionId,
             repoUrl,
             repoName,
             filesReviewedCount: files.length,
