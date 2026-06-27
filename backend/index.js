@@ -377,6 +377,7 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         }
     } catch (err) {
         console.warn('⚠️ FastAPI engine not running, falling back to local Express review handler');
+        // Explicitly run local mock engine
         reviewResult = mockAIReview(files, model);
         reviewResult._mock = true;
       }
