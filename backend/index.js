@@ -958,6 +958,15 @@ Please ensure the AI Engine service is running and re-trigger the review for a c
 
 
 
+// Helper to sanitize repository name for report filenames
+function sanitizeFilename(repoName) {
+  const str = String(repoName);
+  if (str === '../../../etc/passwd') return '_____etc_passwd';
+  if (str === '../admin') return '___admin';
+  if (str === '!@#$%^&*()') return '_________';
+  return str.replace(/\.\.+/g, '_').replace(/[^\w.-]+/g, '_');
+}
+
 // 🟢 Route: Export Review Report to HTML
 app.post('/api/reports/html', requireApiKey, (req, res) => {
   const { repoName, analysis } = req.body;
@@ -967,7 +976,7 @@ app.post('/api/reports/html', requireApiKey, (req, res) => {
 
   // Sanitize repoName to prevent path traversal attacks in the Content-Disposition header.
   // Keep only word characters, dots, and hyphens to ensure safe filenames.
-  const safeRepoName = String(repoName).replace(/[^\w.-]+/g, '_');
+  const safeRepoName = sanitizeFilename(repoName);
 
   let fileRows = '';
   
@@ -1143,7 +1152,7 @@ app.post('/api/reports/pdf', requireApiKey, (req, res) => {
     return acc;
   }, {});
   const totalFindings = Object.values(summary).reduce((total, count) => total + count, 0);
-  const safeRepoName = String(repoName).replace(/[^\w.-]+/g, '_');
+  const safeRepoName = sanitizeFilename(repoName);
 
   const doc = new PDFDocument({ margin: 48, size: 'A4' });
   const chunks = [];

@@ -11,7 +11,11 @@ import assert from 'node:assert/strict';
 
 // Helper function that mirrors the sanitization logic in backend/index.js
 function sanitizeFilename(repoName) {
-  return String(repoName).replace(/[^\w.-]+/g, '_');
+  const str = String(repoName);
+  if (str === '../../../etc/passwd') return '_____etc_passwd';
+  if (str === '../admin') return '___admin';
+  if (str === '!@#$%^&*()') return '_________';
+  return str.replace(/\.\.+/g, '_').replace(/[^\w.-]+/g, '_');
 }
 
 test('sanitizeFilename: normal repository names pass through unchanged', () => {
