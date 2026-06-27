@@ -267,6 +267,22 @@ app.post('/api/analyze', requireApiKey, analyzeLimiter, async (req, res) => {
   // Generate unique folder name
   const parsed = parseRepoUrl(repoUrl);
   const repoName = parsed.repo;
+  const owner = parsed.owner;
+  const maxRepoSizeMB = parseInt(process.env.MAX_REPO_SIZE_MB) || 100;
+  const maxSizeBytes = maxRepoSizeMB * 1024 * 1024;
+
+  // Pre-clone size check via GitHub API to prevent disk exhaustion
+  try {
+    const octokit = new Octokit({ auth: process.env.GITHUB_PAT || undefined });
+    const { data: repoData } = await octokit.rest.repos.get({ owner, repo: repoName });
+    const repoSizeBytes = (repoData.size || 0) * 1024;
+    if (repoSizeBytes > maxSizeBytes) {
+      return res.status(413).json({ error: `Repository exceeds the maximum allowed size of ${maxRepoSizeMB}MB (Reported size: ~${Math.round(repoSizeBytes/1024/1024)}MB).` });
+    }
+  } catch (err) {
+    console.warn(`Could not verify repository size via GitHub API for ${owner}/${repoName}. Proceeding to clone with filters...`);
+  }
+
   const uniqueId = crypto.randomUUID();
   const clonePath = path.join(tempReposDir, `${repoName}_${uniqueId}`);
 
@@ -276,7 +292,7 @@ app.post('/api/analyze', requireApiKey, analyzeLimiter, async (req, res) => {
   try {
     const cloneTimeout = parseInt(process.env.GIT_CLONE_TIMEOUT) || 120000;
     const git = simpleGit({ timeout: { block: cloneTimeout } });
-    await git.clone(repoUrl, clonePath, ['--depth', '1']);
+    await git.clone(repoUrl, clonePath, ['--depth', '1', '--single-branch', `--filter=blob:limit=${maxRepoSizeMB}m`]);
 
     // Check repository size
     const maxRepoSizeMB = parseInt(process.env.MAX_REPO_SIZE_MB) || 100;
