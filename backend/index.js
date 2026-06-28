@@ -29,6 +29,7 @@ import AnalysisCache from './utils/analysisCache.js';
 import Analytics from './models/Analytics.js';
 import Session, { estimateSessionSize } from './models/Session.js';
 import { connectDatabase, ensureConnection, closeDatabase } from './config/db.js';
+import { analyzeIncremental } from './utils/incrementalReviewer.js';
 
 dotenv.config();
 
@@ -386,7 +387,7 @@ function requireJsonContentType(req, res, next) {
 // 🟢 Route: GitHub Import & AI Review
 app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, async (req, res) => {
   let { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile',temperature = 0.7,
-     maxTokens = 2048, systemPrompt = '', batchSize = 5
+     maxTokens = 2048, systemPrompt = '', batchSize = 5, incremental = false, baseRef = 'main'
    } = req.body;
 
   // Enforce boundary limits for batchSize to prevent downstream parsing crashes
@@ -465,14 +466,38 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
     try {
       // 1. Load ignore patterns and read files
       const ignorePatterns = loadIgnorePatterns(clonePath);
-      const files = readFilesRecursively(clonePath, [], clonePath, ignorePatterns);
-      
+      let files = readFilesRecursively(clonePath, [], clonePath, ignorePatterns);
+
       if (files.length === 0) {
         await deleteFolderRecursive(clonePath);
         return res.status(400).json({ error: 'No supportable source code files found in the repository.' });
       }
 
-      console.log(`📁 Found ${files.length} valid source files. Checking cache...`);
+      // 1.2. Incremental review: filter to only changed files if requested
+      let incrementalStats = null;
+      if (incremental) {
+        const allFilePaths = files.map(f => f.name);
+        incrementalStats = await analyzeIncremental(clonePath, baseRef, allFilePaths);
+        const filesToReviewSet = new Set(incrementalStats.filesToReviewList);
+        files = files.filter(f => filesToReviewSet.has(f.name));
+
+        if (files.length === 0) {
+          console.log(`✅ Incremental review: no changed files since ${baseRef}`);
+          await deleteFolderRecursive(clonePath);
+          return res.json({
+            success: true,
+            repoName,
+            incremental: true,
+            incrementalStats,
+            analysis: { fileReviews: {} },
+            message: `No changes detected since ${baseRef}. Previous analysis results cached.`,
+          });
+        }
+
+        console.log(`📊 Incremental mode: reviewing ${files.length}/${incrementalStats.totalFilesInRepo} changed files`);
+      } else {
+        console.log(`📁 Found ${files.length} valid source files. Checking cache...`);
+      }
 
       // 1.3. Scan files for prompt injection patterns
       const fileWarnings = [];
@@ -632,6 +657,7 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         sessionId,
         chatAvailable: sessionPersisted,
         sessionPersisted,
+        ...(incrementalStats ? { incremental: true, incrementalStats } : {}),
         ...(fileWarnings.length > 0 ? { warnings: fileWarnings } : {})
       });
 
