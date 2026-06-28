@@ -8,6 +8,7 @@ export interface AnalyticsDateRangePickerProps {
   label?: string;
   className?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
 const DATE_RANGE_OPTIONS: Array<{
@@ -38,6 +39,7 @@ const AnalyticsDateRangePicker: React.FC<AnalyticsDateRangePickerProps> = ({
   label = "Date range",
   className,
   style,
+  disabled = false,
 }) => {
   return (
     <div
@@ -79,36 +81,38 @@ const AnalyticsDateRangePicker: React.FC<AnalyticsDateRangePickerProps> = ({
           const isSelected = option.value === value;
 
           return (
-            <button
-              key={option.value}
-              type="button"
-              aria-label={option.ariaLabel}
-              aria-pressed={isSelected}
-              onClick={() => onChange(option.value)}
-              style={{
-                flex: "1 1 120px",
-                minWidth: "0",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid",
-                borderColor: isSelected
-                  ? "rgba(59,130,246,0.4)"
-                  : "rgba(255,255,255,0.08)",
-                background: isSelected
-                  ? "rgba(59,130,246,0.14)"
-                  : "rgba(255,255,255,0.03)",
-                color: isSelected ? "#60a5fa" : "var(--text-color)",
-                boxShadow: isSelected
-                  ? "0 0 0 1px rgba(59,130,246,0.18) inset"
-                  : "none",
-                fontSize: "12px",
-                fontWeight: 700,
-                lineHeight: 1.2,
-                cursor: "pointer",
-                transition: "all 0.2s ease-in-out",
-                whiteSpace: "nowrap",
-              }}
-            >
+              <button
+                key={option.value}
+                type="button"
+                aria-label={option.ariaLabel}
+                aria-pressed={isSelected}
+                disabled={disabled}
+                onClick={() => onChange(option.value)}
+                style={{
+                  flex: "1 1 120px",
+                  minWidth: "0",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid",
+                  borderColor: isSelected
+                    ? "rgba(59,130,246,0.4)"
+                    : "rgba(255,255,255,0.08)",
+                  background: isSelected
+                    ? "rgba(59,130,246,0.14)"
+                    : "rgba(255,255,255,0.03)",
+                  color: isSelected ? "#60a5fa" : "var(--text-color)",
+                  boxShadow: isSelected
+                    ? "0 0 0 1px rgba(59,130,246,0.18) inset"
+                    : "none",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  opacity: disabled ? 0.5 : 1,
+                  transition: "all 0.2s ease-in-out",
+                  whiteSpace: "nowrap",
+                }}
+              >
               {option.label}
             </button>
           );
