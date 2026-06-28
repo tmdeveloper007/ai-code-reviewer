@@ -457,10 +457,6 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
             if (!reviewResult.fileReviews[file.name]) {
               reviewResult.fileReviews[file.name] = { bugs: [], security: [], optimization: [], styling: [] };
             }
-            // Append found secrets to security category
-            if (!reviewResult.fileReviews[file.name].security) {
-              reviewResult.fileReviews[file.name].security = [];
-            }
             // Avoid duplicate additions
             secretFindings.forEach(finding => {
               const duplicate = reviewResult.fileReviews[file.name].security.some(s => s.line === finding.line && s.type === finding.type);
