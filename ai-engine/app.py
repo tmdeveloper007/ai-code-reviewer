@@ -910,7 +910,10 @@ async def ingest_chunks_route(request: IngestRequest):
     texts = [c.content for c in request.chunks]
     metadatas = [c.metadata for c in request.chunks]
     ids = [c.chunk_id for c in request.chunks]
-    count = ingest_chunks(texts, metadatas, ids, repo_url=request.repo_url)
+    try:
+        count = ingest_chunks(texts, metadatas, ids, repo_url=request.repo_url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return IngestionResponse(ingested_count=count)
 
 
