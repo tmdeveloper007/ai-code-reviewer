@@ -831,6 +831,7 @@ export default function Dashboard() {
           temperature: aiSettings.temperature ?? 0.7,
           maxTokens: aiSettings.maxTokens ?? 2048,
           systemPrompt: aiSettings.systemPrompt ?? "",
+          batchSize: aiSettings.batchSize ?? 5,
         }),
       });
 
