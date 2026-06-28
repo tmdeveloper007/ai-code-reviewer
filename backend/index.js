@@ -748,7 +748,7 @@ app.post('/api/webhook', async (req, res) => {
         return res.json({ success: true, message: 'Webhook received (duplicate SHA skipped).' });
       }
       reviewedShas.get(shaKey).add(headSha);
-      setTimeout(() => {
+      const shaTimeout = setTimeout(() => {
         const set = reviewedShas.get(shaKey);
         if (set) {
           set.delete(headSha);
@@ -757,6 +757,7 @@ app.post('/api/webhook', async (req, res) => {
           }
         }
       }, 3600000);
+      shaTimeout.unref();
       
       console.log(`📡 GitHub Webhook received: PR #${pullNumber} ${action} (${headSha.substring(0,7)}) in ${owner}/${repo}`);
       
