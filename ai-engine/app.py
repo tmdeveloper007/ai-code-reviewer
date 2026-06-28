@@ -771,6 +771,21 @@ class SplitResponse(BaseModel):
     total_files: int
 
 
+class ChunkItem(BaseModel):
+    chunk_id: str
+    content: str
+    metadata: dict
+
+
+class IngestRequest(BaseModel):
+    repo_url: str
+    chunks: List[ChunkItem]
+
+
+class IngestionResponse(BaseModel):
+    ingested_count: int
+
+
 class RagQueryRequest(BaseModel):
     question: str
     repo_url: Optional[str] = None
@@ -819,6 +834,19 @@ async def split_files_for_rag(request: SplitRequest):
         total_chunks=len(chunks),
         total_files=len(request.files),
     )
+
+
+# 🟢 Route: Ingest chunks into ChromaDB for RAG
+@app.post("/api/rag/ingest", response_model=IngestionResponse)
+async def ingest_chunks_route(request: IngestRequest):
+    from rag import ingest_chunks, delete_repo_chunks
+
+    delete_repo_chunks(request.repo_url)
+    texts = [c.content for c in request.chunks]
+    metadatas = [c.metadata for c in request.chunks]
+    ids = [c.chunk_id for c in request.chunks]
+    count = ingest_chunks(texts, metadatas, ids, repo_url=request.repo_url)
+    return IngestionResponse(ingested_count=count)
 
 
 # 🟢 Route: Query RAG chunks for a given question

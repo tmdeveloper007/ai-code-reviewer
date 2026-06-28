@@ -506,7 +506,27 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         console.warn(`⚠️ Session too large (${(estimatedSize / 1024 / 1024).toFixed(1)}MB), skipping persistence`);
       }
 
-      // 4. Compute and persist analytics
+      // 4. Ingest files into RAG vector store for semantic search (non-fatal)
+      try {
+        const baseUrl = (process.env.AI_ENGINE_URL || 'http://localhost:8000').replace(/\/+$/, '');
+        const splitResp = await fetchWithTimeout(`${baseUrl}/api/rag/split`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: storedFiles, repo_url: repoUrl })
+        }, 30000);
+        if (splitResp.ok) {
+          const { chunks } = await splitResp.json();
+          await fetchWithTimeout(`${baseUrl}/api/rag/ingest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ repo_url: repoUrl, chunks })
+          }, 60000);
+        }
+      } catch (ragErr) {
+        console.warn('⚠️ RAG ingestion failed (non-fatal):', ragErr.message);
+      }
+
+      // 5. Compute and persist analytics
       let totalBugs = 0, totalSecurityIssues = 0, totalOptimizations = 0, totalStylingIssues = 0;
       if (reviewResult && reviewResult.fileReviews) {
         for (const file of Object.keys(reviewResult.fileReviews)) {
@@ -543,10 +563,10 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         }
       }
 
-      // 5. Clean up folder
+      // 6. Clean up folder
       await deleteFolderRecursive(clonePath);
       
-      // 6. Return result
+      // 7. Return result
       return res.json({
         success: true,
         repoName,
