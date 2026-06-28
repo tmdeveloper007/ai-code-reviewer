@@ -29,6 +29,7 @@ import AnalysisCache from './utils/analysisCache.js';
 import Analytics from './models/Analytics.js';
 import Session, { estimateSessionSize } from './models/Session.js';
 import { connectDatabase, ensureConnection, closeDatabase } from './config/db.js';
+import { createCheckRun } from './utils/githubChecksIntegration.js';
 
 dotenv.config();
 
@@ -386,7 +387,7 @@ function requireJsonContentType(req, res, next) {
 // 🟢 Route: GitHub Import & AI Review
 app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, async (req, res) => {
   let { repoUrl, company = 'General', language = 'English', model = 'llama-3.3-70b-versatile',temperature = 0.7,
-     maxTokens = 2048, systemPrompt = '', batchSize = 5
+     maxTokens = 2048, systemPrompt = '', batchSize = 5, githubChecks = false, githubSha = null, githubToken = null
    } = req.body;
 
   // Enforce boundary limits for batchSize to prevent downstream parsing crashes
@@ -622,7 +623,46 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
 
       // 5. Clean up folder
       await deleteFolderRecursive(clonePath);
-      
+
+      // 5.5. Integrate with GitHub Checks API if requested
+      let checkRunResult = null;
+      if (githubChecks && githubSha && githubToken) {
+        try {
+          const octokitInstance = new Octokit({ auth: githubToken });
+          const findings = [];
+
+          if (reviewResult && reviewResult.fileReviews) {
+            for (const [filePath, review] of Object.entries(reviewResult.fileReviews)) {
+              const processIssues = (issues, severity) => {
+                if (Array.isArray(issues)) {
+                  issues.forEach(issue => {
+                    findings.push({
+                      file: filePath,
+                      line: issue.line || 1,
+                      severity: severity,
+                      message: issue.description || issue.message || '',
+                      rule_id: issue.rule || severity.toUpperCase(),
+                    });
+                  });
+                }
+              };
+
+              processIssues(review.bugs, 'error');
+              processIssues(review.security, 'error');
+              processIssues(review.optimization, 'warning');
+              processIssues(review.styling, 'info');
+            }
+          }
+
+          if (findings.length > 0) {
+            checkRunResult = await createCheckRun(octokitInstance, owner, repoName, githubSha, findings);
+            console.log(`✅ GitHub Check Run created with ${findings.length} findings`);
+          }
+        } catch (checkErr) {
+          console.warn(`⚠️ Failed to create GitHub Check Run: ${checkErr.message}`);
+        }
+      }
+
       // 6. Return result
       return res.json({
         success: true,
@@ -632,6 +672,7 @@ app.post('/api/analyze', requireApiKey, requireJsonContentType, analyzeLimiter, 
         sessionId,
         chatAvailable: sessionPersisted,
         sessionPersisted,
+        ...(checkRunResult ? { checkRun: checkRunResult } : {}),
         ...(fileWarnings.length > 0 ? { warnings: fileWarnings } : {})
       });
 
