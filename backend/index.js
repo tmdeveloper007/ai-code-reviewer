@@ -121,6 +121,14 @@ const CSRF_COOKIE_NAME = 'csrf-token';
 const CSRF_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const csrfTokenStore = new Map();
 
+// Periodic cleanup of expired CSRF tokens to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, expiry] of csrfTokenStore) {
+    if (now > expiry) csrfTokenStore.delete(token);
+  }
+}, 5 * 60 * 1000);
+
 function generateCsrfToken() {
   const token = crypto.randomBytes(32).toString('hex');
   csrfTokenStore.set(token, Date.now() + CSRF_TOKEN_TTL_MS);
