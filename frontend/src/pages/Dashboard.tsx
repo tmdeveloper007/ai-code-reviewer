@@ -83,6 +83,7 @@ interface AnalysisData {
   generatedReadme: string;
   mermaidDiagram?: string;
   metrics?: Record<string, any>;
+  _mock?: boolean;
 }
 
 export interface BackendResponse {
@@ -1772,7 +1773,7 @@ export default function Dashboard() {
                 boxSizing: "border-box",
               }}
             >
-              {analysisResult._mock && (
+              {(analysisResult._mock || analysisResult.analysis?._mock) && (
                 <div
                   style={{
                     background: "rgba(251,191,36,0.12)",
@@ -3134,7 +3135,7 @@ export default function Dashboard() {
                                     {item.suggestion}
                                   </code>
                                 </div>
-                                {!analysisResult?._mock && <div
+                                {!(analysisResult?._mock || analysisResult?.analysis?._mock) && <div
                                   style={{
                                     marginTop: "10px",
                                     display: "flex",
