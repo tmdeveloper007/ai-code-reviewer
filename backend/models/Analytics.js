@@ -49,6 +49,15 @@ const analyticsSchema = new mongoose.Schema({
     type: String,
     default: 'llama-3.3-70b-versatile',
   },
+  branch: {
+  type: String,
+  default: "main",
+},
+
+commitHash: {
+  type: String,
+  default: "",
+},
   analyzedAt: {
     type: Date,
     default: Date.now,

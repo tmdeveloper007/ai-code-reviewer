@@ -38,7 +38,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ theme = 'dark', sess
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sessionId) {
+    if (!reviewId) {
       setChartData(null);
       setError(null);
       return;
@@ -47,7 +47,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ theme = 'dark', sess
     setLoading(true);
     setError(null);
 
-    apiFetch(`/api/analytics/trends?sessionId=${encodeURIComponent(sessionId)}`)
+    apiFetch(`/api/analytics/trends?reviewId=${encodeURIComponent(reviewId)}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch analytics trends");
         return res.json();
@@ -68,7 +68,7 @@ export const MetricsChart: React.FC<MetricsChartProps> = ({ theme = 'dark', sess
         setChartData([]);
         setLoading(false);
       });
-  }, [sessionId]);
+  }, [reviewId]);
 
 
   return (

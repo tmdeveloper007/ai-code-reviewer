@@ -1529,6 +1529,103 @@ app.get('/api/analytics/trends', requireApiKey, async (req, res) => {
   }
 });
 
+app.get("/api/review-history", requireApiKey, async (req, res) => {
+
+    try {
+
+        const history = await Analytics.find()
+            .sort({ analyzedAt: -1 })
+            .limit(20);
+
+        res.json(history);
+
+    } catch (err) {
+
+        res.status(500).json({
+            error: "Failed to fetch review history."
+        });
+
+    }
+
+});
+
+app.get("/api/review-history/:repo", requireApiKey, async (req, res) => {
+
+    try {
+
+        const history = await Analytics.find({
+            repoName: req.params.repo
+        }).sort({
+            analyzedAt: -1
+        });
+
+        res.json(history);
+
+    } catch (err) {
+
+        res.status(500).json({
+            error: "Failed to fetch repository history."
+        });
+
+    }
+
+});
+
+app.get("/api/review-history/compare/:id1/:id2", requireApiKey, async (req, res) => {
+
+    try {
+
+        const first = await Analytics.findById(req.params.id1);
+
+        const second = await Analytics.findById(req.params.id2);
+
+        if (!first || !second) {
+
+            return res.status(404).json({
+                error: "Review not found."
+            });
+
+        }
+
+        res.json({
+
+            previous: first,
+
+            current: second,
+
+            difference: {
+
+                healthScore:
+                    second.healthScore - first.healthScore,
+
+                findings:
+                    second.totalFindings - first.totalFindings,
+
+                bugs:
+                    second.totalBugs - first.totalBugs,
+
+                security:
+                    second.totalSecurityIssues -
+                    first.totalSecurityIssues,
+
+                optimization:
+                    second.totalOptimizations -
+                    first.totalOptimizations
+
+            }
+
+        });
+
+    } catch (err) {
+
+        res.status(500).json({
+            error: "Comparison failed."
+        });
+
+    }
+
+});
+
 app.listen(PORT, () => {
   console.log(`🟢 RepoSage Backend running on http://localhost:${PORT}`);
 });

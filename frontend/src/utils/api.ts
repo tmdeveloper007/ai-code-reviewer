@@ -93,3 +93,37 @@ export const apiFetch = async (path: string, options: RequestInit = {}, timeoutM
     clearTimeout(timeoutId);
   }
 };
+// Get all review history
+export const getReviewHistory = async () => {
+  const response = await apiFetch("/api/review-history");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch review history");
+  }
+
+  return response.json();
+};
+
+// Get review history of a specific repository
+export const getRepositoryHistory = async (repo: string) => {
+  const response = await apiFetch(`/api/review-history/${repo}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch repository history");
+  }
+
+  return response.json();
+};
+
+// Compare two reviews
+export const compareReviews = async (id1: string, id2: string) => {
+  const response = await apiFetch(
+    `/api/review-history/compare/${id1}/${id2}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to compare reviews");
+  }
+
+  return response.json();
+};

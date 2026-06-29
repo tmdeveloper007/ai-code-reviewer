@@ -30,7 +30,7 @@ import {
 import { handleMarkdownExport, handleHtmlExport } from "../utils/exportUtils";
 import mermaid from "mermaid";
 import { sanitizeMermaidOutput } from "../utils/sanitize";
-import { apiFetch } from "../utils/api";
+import { apiFetch, getReviewHistory } from "../utils/api";
 
 // Initialize Mermaid outside the component to avoid multiple initializations
 try {
@@ -587,6 +587,22 @@ export default function Dashboard() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatHistory, isChatLoading]);
+
+  useEffect(() => {
+  const loadHistory = async () => {
+    try {
+      const history = await getReviewHistory();
+
+      if (history) {
+        setAuditHistory(history);
+      }
+    } catch (err) {
+      console.error("Failed to load review history", err);
+    }
+  };
+
+  loadHistory();
+}, []);
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
     e.preventDefault();
