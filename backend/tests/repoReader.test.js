@@ -213,3 +213,49 @@ test('readCodeFilesFromRepo cleans up the temp clone even on URL validation fail
   // before the clone step. (The clone path is only allocated inside the try block.)
   assert.equal(after.length, before.length, 'No rag_* temp dirs should be left behind');
 });
+
+// ---------- normalizeExtensions behavior via readCodeFilesFromLocalDir ----------
+
+test('readCodeFilesFromLocalDir: bare extension without dot matches files', () => {
+  // normalizeExtensions adds leading dot: 'js' -> '.js'
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['js'] });
+  const paths = result.map((e) => e.path);
+  assert.ok(paths.some((p) => p.endsWith('.js')), 'should find .js files with bare "js" extension');
+});
+
+test('readCodeFilesFromLocalDir: extension with dot matches same files as bare extension', () => {
+  const resultBare = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['js'] });
+  const resultDot = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['.js'] });
+  const barePaths = resultBare.map((e) => e.path).sort();
+  const dotPaths = resultDot.map((e) => e.path).sort();
+  assert.deepEqual(barePaths, dotPaths, 'bare "js" and dot ".js" should return identical results');
+});
+
+test('readCodeFilesFromLocalDir: uppercase extension is case-insensitive', () => {
+  // normalizeExtensions lowercases: '.JS' -> '.js'
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['.JS'] });
+  const paths = result.map((e) => e.path);
+  assert.ok(paths.some((p) => p.endsWith('.js')), 'should find .js files with ".JS" (uppercase) extension');
+});
+
+test('readCodeFilesFromLocalDir: mixed-case bare extension is handled', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['PY'] });
+  const paths = result.map((e) => e.path);
+  assert.ok(paths.some((p) => p.endsWith('.py')), 'should find .py files with "PY" (uppercase bare) extension');
+});
+
+test('readCodeFilesFromLocalDir: mixed extension list (some with dot, some without)', () => {
+  // normalizeExtensions processes each: '.js' stays, 'py' becomes '.py'
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['.js', 'py'] });
+  const paths = result.map((e) => e.path);
+  assert.ok(paths.some((p) => p.endsWith('.js')), 'should find .js files');
+  assert.ok(paths.some((p) => p.endsWith('.py')), 'should find .py files');
+});
+
+test('readCodeFilesFromLocalDir: all-lowercase mixed list', () => {
+  const result = readCodeFilesFromLocalDir(fixtureDir, { extensions: ['js', 'ts', 'py'] });
+  const extensions = new Set(result.map((e) => path.extname(e.path).toLowerCase()));
+  assert.ok(extensions.has('.js'), 'should include .js');
+  assert.ok(extensions.has('.ts'), 'should include .ts');
+  assert.ok(extensions.has('.py'), 'should include .py');
+});
