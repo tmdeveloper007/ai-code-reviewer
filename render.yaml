@@ -5,6 +5,7 @@ services:
   - type: web
     name: reposage-backend
     env: node
+    plan: free
     buildCommand: "cd backend && npm install"
     startCommand: "cd backend && npm start"
     envVars:
@@ -30,6 +31,7 @@ services:
   - type: web
     name: reposage-ai-engine
     env: python
+    plan: free
     buildCommand: "cd ai-engine && pip install -r requirements.txt"
     startCommand: "cd ai-engine && uvicorn app:app --host 0.0.0.0 --port 10000"
     envVars:
