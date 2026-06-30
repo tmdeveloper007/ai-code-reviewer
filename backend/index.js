@@ -1202,6 +1202,7 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
 
   const commentsToPost = [];
   const filesToReview = [];
+  const validChangedLines = new Map();
 
   for (const file of parsedFiles) {
     // Check if file is supported
@@ -1210,6 +1211,7 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
     if (!ext || !validExtensions.includes(ext) || file.changes.length === 0) {
       continue;
     }
+    validChangedLines.set(file.path, new Set(file.changes.map(change => change.line)));
 
     // Run local secrets scanner
     const { findings: secretFindings, truncated: scanTruncated, totalChanges: scanTotal, skippedReason: scanReason } = scanSecretsInChanges(file.changes);
@@ -1250,6 +1252,11 @@ async function runWebhookReview(owner, repo, pullNumber, headSha) {
         const result = await aiResponse.json();
         if (result.comments && Array.isArray(result.comments)) {
           result.comments.forEach(c => {
+            const validLines = validChangedLines.get(c.path);
+            if (!validLines || !validLines.has(Number(c.line))) {
+              console.warn(`⚠️ Skipping invalid inline comment location ${c.path}:${c.line}`);
+              return;
+            }
             // Avoid duplicate comments if secrets scanner already flagged it
             const duplicate = commentsToPost.some(exist => exist.path === c.path && exist.line === c.line);
             if (!duplicate) {
