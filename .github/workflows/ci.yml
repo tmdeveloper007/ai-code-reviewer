@@ -97,6 +97,15 @@ jobs:
       - name: Run AI Engine Tests
         run: |
           cd ai-engine
+          echo "=== Python version ==="
+          python --version
+          echo "=== Installed packages ==="
+          pip list
+          echo "=== Testing imports ==="
+          python -c "import chromadb; print('chromadb OK')"
+          python -c "from app import sanitize_file_content; print('sanitize_file_content OK')"
+          python -c "from app import app; print('app OK')"
+          echo "=== Running pytest ==="
           pytest --cov=./ --cov-report=xml tests/ -v
 
       - name: Upload coverage reports to Codecov
