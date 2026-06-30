@@ -92,7 +92,6 @@ const issueLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: getRealClientIp,
   message: { error: 'Too many issue creation requests.' }
 });
 
