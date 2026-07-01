@@ -45,7 +45,6 @@ async function createCheckRun(octokit, owner, repo, sha, findings) {
 
   for (let i = 0; i < batches.length; i++) {
     const batchAnnotations = batches[i];
-    const isLastBatch = i === batches.length - 1;
 
     const hasErrorSeverity = findings.some(f => f.severity === 'error');
 
@@ -80,9 +79,4 @@ async function createCheckRun(octokit, owner, repo, sha, findings) {
   };
 }
 
-module.exports = {
-  createCheckRun,
-  severityToGitHubLevel,
-  formatAnnotations,
-  batchAnnotations,
-};
+export { createCheckRun, severityToGitHubLevel, formatAnnotations, batchAnnotations, MAX_ANNOTATIONS_PER_REQUEST };
