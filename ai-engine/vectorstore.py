@@ -9,7 +9,7 @@ VECTORS_FILE = os.path.join(DATA_DIR, "vectors.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 _vectors = []
-_vectors_lock = threading.Lock()
+_vectors_lock = threading.RLock()
 
 
 def _load():
@@ -74,10 +74,11 @@ def cleanup_stale_vectors(current_files: set[str]) -> dict:
         removed_count = 0
         for stale_path in stale_paths:
             removed_count += delete_vectors_for_file(stale_path)
+        remaining_count = len(_vectors)
     return {
         "stale_paths": list(stale_paths),
         "removed_count": removed_count,
-        "remaining_count": len(_vectors),
+        "remaining_count": remaining_count,
     }
 
 

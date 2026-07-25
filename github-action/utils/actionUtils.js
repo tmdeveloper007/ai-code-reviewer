@@ -1,6 +1,40 @@
-import { globToRegex } from './globToRegex.js';
-
-export { globToRegex };
+/**
+ * Converts a glob-style .gitignore pattern to a RegExp.
+ * Supports: * (non-slash wildcard), ** (recursive), ? (single char), . (escaped).
+ */
+export function globToRegex(pattern) {
+  let regexStr = '^';
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === '*') {
+      if (i + 1 < pattern.length && pattern[i + 1] === '*') {
+        regexStr += '.*';
+        i += 2;
+        if (i < pattern.length && pattern[i] === '/') {
+          i++;
+        }
+      } else {
+        regexStr += '[^/]*';
+        i++;
+      }
+    } else if (ch === '?') {
+      regexStr += '[^/]';
+      i++;
+    } else if (ch === '.') {
+      regexStr += '\\.';
+      i++;
+    } else if (ch === '/') {
+      regexStr += '/';
+      i++;
+    } else {
+      regexStr += ch;
+      i++;
+    }
+  }
+  regexStr += '$';
+  return new RegExp(regexStr);
+}
 
 /**
  * Safely parses JSON from an LLM response text, stripping markdown code fences.
@@ -21,4 +55,9 @@ export function cleanAndParseJSON(responseText) {
   } catch {
     return { reviews: [] };
   }
+}
+
+export function normalizeReviewLineNumber(value) {
+  const line = Number(value);
+  return Number.isInteger(line) && line > 0 ? line : null;
 }
