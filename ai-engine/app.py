@@ -1290,9 +1290,8 @@ If no issues are found, reply with: {{ "reviews": [] }}"""
     except asyncio.TimeoutError:
         print(f"⚠️ review-diff timed out after {int(ANALYSIS_TIMEOUT_SECONDS)}s, returning partial results")
 
-    result = {"comments": comments}
+    result = {"comments": comments, "truncated": truncated}
     if truncated:
-        result["truncated"] = True
         result["files_reviewed"] = len(files_to_review)
         result["files_total"] = total_files
         result["warning"] = (
