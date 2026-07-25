@@ -1,6 +1,21 @@
 import subprocess
+import re
 from typing import List, Set
 import requests
+
+_GIT_REF_RE = re.compile(r"^[\w./\-]+$")
+
+def sanitize_git_ref(ref: str) -> str:
+    """Validate and sanitize a git reference to prevent command injection."""
+    if not isinstance(ref, str) or not ref:
+        raise ValueError("Ref must be a non-empty string")
+    if len(ref) > 256:
+        raise ValueError("Ref exceeds maximum length of 256 characters")
+    if ref.startswith("-"):
+        raise ValueError("Ref must not start with a hyphen")
+    if not _GIT_REF_RE.match(ref):
+        raise ValueError("Ref contains invalid characters")
+    return ref
 
 
 def get_changed_files_from_git(base: str, head: str) -> Set[str]:
@@ -15,17 +30,22 @@ def get_changed_files_from_git(base: str, head: str) -> Set[str]:
         Set of changed file paths
     """
     try:
+        base = sanitize_git_ref(base)
+        head = sanitize_git_ref(head)
         result = subprocess.run(
-            ["git", "diff", "--name-only", f"{base}...{head}"],
+            ["git", "diff", "--name-only", f"{base}...{head}", "--"],
             capture_output=True,
             text=True,
             check=True,
-            timeout=30
+            timeout=10
         )
         changed_files = {f.strip() for f in result.stdout.splitlines() if f.strip()}
         return changed_files
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Error getting changed files from git: {e}")
+        return set()
+    except subprocess.TimeoutExpired:
+        print("⚠️  git diff timed out after 10s")
         return set()
     except FileNotFoundError:
         print("⚠️  Git not found in PATH")
@@ -33,6 +53,10 @@ def get_changed_files_from_git(base: str, head: str) -> Set[str]:
     except Exception as e:
         print(f"⚠️  Unexpected error in get_changed_files_from_git: {e}")
         return set()
+
+
+MAX_CHANGED_FILES = 500
+MAX_PAGES = (MAX_CHANGED_FILES + 99) // 100  # 5 pages for 500 files
 
 
 def get_changed_files_from_github_pr(
@@ -60,7 +84,7 @@ def get_changed_files_from_github_pr(
         all_files = set()
         page = 1
 
-        while True:
+        while page <= MAX_PAGES:
             params = {"per_page": 100, "page": page}
             response = requests.get(url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
@@ -73,7 +97,14 @@ def get_changed_files_from_github_pr(
                 if "filename" in file_obj:
                     all_files.add(file_obj["filename"])
 
+            if len(all_files) >= MAX_CHANGED_FILES:
+                print(f"⚠️  Changed files reached cap of {MAX_CHANGED_FILES}, stopping pagination")
+                break
+
             page += 1
+
+        if page > MAX_PAGES:
+            print(f"⚠️  Changed files exceeded {MAX_PAGES} pages, results may be incomplete")
 
         return all_files
     except requests.exceptions.RequestException as e:
