@@ -151,5 +151,5 @@ def format_diff_header(
     parts = [f"Diff mode active: reviewing {num_reviewed} changed files"]
     if base or head:
         parts.append(f"(base: {base}, head: {head})")
-    parts.append(f"\nSkipped: {num_skipped} unchanged files")
-    return " ".join(parts)
+    parts.append(f"Skipped: {num_skipped} unchanged files")
+    return "\n".join(parts)
