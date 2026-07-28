@@ -128,7 +128,7 @@ def filter_files_by_changes(
     Returns:
         Tuple of (filtered_files, num_skipped)
     """
-    filtered = [f for f in files if f.name in changed_files]
+    filtered = [f for f in files if f.name.replace(chr(92), "/") in changed_files]
     skipped = len(files) - len(filtered)
     return filtered, skipped
 
