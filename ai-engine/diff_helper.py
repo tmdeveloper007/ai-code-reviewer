@@ -102,8 +102,7 @@ def get_changed_files_from_github_pr(
                 break
 
             page += 1
-
-        if page > MAX_PAGES:
+        else:
             print(f"⚠️  Changed files exceeded {MAX_PAGES} pages, results may be incomplete")
 
         return all_files
