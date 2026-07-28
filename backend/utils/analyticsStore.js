@@ -99,7 +99,7 @@ export async function recordAnalysis(record) {
         });
 
         const trimmed = records.slice(-MAX_RECORDS);
-        writeStoreAtomic(trimmed);
+        await writeStoreAtomic(trimmed);
     } finally {
         release();
     }
