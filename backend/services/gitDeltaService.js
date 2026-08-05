@@ -10,8 +10,10 @@ const execAsync = util.promisify(exec);
  * @returns {boolean} - True if valid, false otherwise.
  */
 export function isValidBranchName(branch) {
-  const branchRegex = /^[a-zA-Z0-9-_/]+$/;
-  return branchRegex.test(branch) && !branch.includes('..');
+  if (typeof branch !== 'string' || !branch) return false;
+  if (branch.startsWith('-') || branch.includes('..')) return false;
+  const branchRegex = /^[a-zA-Z0-9_/-]+$/;
+  return branchRegex.test(branch);
 }
 
 /**

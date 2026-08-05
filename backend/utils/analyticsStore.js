@@ -19,6 +19,7 @@ let storeLock = Promise.resolve();
 async function acquireLock() {
   const prev = storeLock;
   let release;
+  storeLock = new Promise(resolve => { release = resolve; });
   const next = new Promise(resolve => { release = resolve; });
   storeLock = next;
   await prev;
