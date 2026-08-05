@@ -78,13 +78,12 @@ class DedupStore {
       }
     }
     const entry = this.memoryStore.get(key);
-    if (!entry || !(entry.value instanceof Set)) return false;
-    if (!entry) return false;
-    if (Date.now() > entry.expiresAt) {
+    if (!entry || Date.now() > entry.expiresAt) {
       this.memoryStore.delete(key);
       return false;
     }
-    return entry.value instanceof Set ? entry.value.has(member) : false;
+    if (!(entry.value instanceof Set)) return false;
+    return entry.value.has(member);
   }
 
   async removeFromSet(key, member) {
