@@ -1,11 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import express from 'express';
+import apiRouter from '../routes/apiReference.js';
+
+test('apiReference router exports a valid express Router with /analyze endpoint', () => {
+  const app = express();
+  app.use('/api', apiRouter);
+
+  assert.equal(typeof apiRouter, 'function');
+  assert.ok(apiRouter.stack.some(layer => layer.route && layer.route.path === '/analyze'));
+});
 import request from 'supertest';
 
 const originalWarn = console.warn;
 console.warn = () => {};
 
-const apiRefApp = (await import('../routes/apiReference.js')).default;
+const apiRefApp = express();
+apiRefApp.set('trust proxy', 1);
+apiRefApp.use('/api', apiRouter);
 
 test('app is an Express application', () => {
   assert.ok(apiRefApp, 'Default export should be an Express app');

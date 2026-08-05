@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDebounce } from '../hooks/useDebounce';
+import { getSessionOwnerToken, setSessionOwnerToken } from '../utils/sessionToken';
 import { useStore, ChatMessage } from '../store/useStore';
 import SettingsModal from "../components/SettingsModal";
 import DashboardFooter from "../components/DashboardFooter";
@@ -138,8 +139,10 @@ export interface AuditHistoryEntry {
 
 
 export default function Dashboard() {
-  const { reviewText, isStreaming, error: streamError } = useStreamingReview();
+  const { reviewText, isStreaming, isMock, error: streamError, startStream, resetStream } = useStreamingReview();
+  const streamPreviewDisabled = streamError === 'HTTP error! Status: 404';
   const [showSettings, setShowSettings] = useState(false);
+  const handleCloseSettings = useCallback(() => setShowSettings(false), []);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -563,6 +566,8 @@ export default function Dashboard() {
           title,
           body,
           labels,
+          sessionId,
+          sessionOwnerToken: getSessionOwnerToken(),
         }),
       });
 
@@ -667,6 +672,22 @@ export default function Dashboard() {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
 
+    // Basic client-side scan of history for dangerous patterns
+    if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+      const lowMsg = chatInput.toLowerCase();
+      for (const entry of chatHistory) {
+        if (entry?.content) {
+          for (const phrase of ['ignore all instructions', 'ignore previous', 'forget everything', 'you are now', 'new instructions']) {
+            if (entry.content.toLowerCase().includes(phrase) || lowMsg.includes(phrase)) {
+              setApiError('Message blocked: prohibited content detected.');
+              setIsChatLoading(false);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     const userMessage = chatInput;
     setChatInput("");
 
@@ -693,7 +714,7 @@ export default function Dashboard() {
             temperature: chatAiSettings.temperature ?? 0.4,
             maxTokens: chatAiSettings.maxTokens ?? 2048,
             sessionId,
-            sessionOwnerToken: localStorage.getItem("sessionOwnerToken") || "",
+            sessionOwnerToken: getSessionOwnerToken(),
             useRag,
             systemPrompt: chatAiSettings.systemPrompt ?? "",
           }),
@@ -705,14 +726,10 @@ export default function Dashboard() {
 
       const data = await response.json();
       const sources = data.sources || [];
-      setChatHistory((prev) => {
-        const updated = truncateChatHistory([
-          ...prev,
-          { role: "assistant" as const, content: data.response ?? data.message ?? "", sources: sources.length > 0 ? sources : undefined },
-        ]);
-        if (!safeSetItem(CHAT_HISTORY_KEY, JSON.stringify(updated))) setStorageWarning(true);
-        return updated;
-      });
+      setChatHistory((prev) => truncateChatHistory([
+        ...prev,
+        { role: "assistant" as const, content: data.response ?? data.message ?? "", sources: sources.length > 0 ? sources : undefined },
+      ]));
     } catch (err: unknown) {
       console.error(err);
       let errMsg = (err instanceof Error ? err.message : String(err)) || "Chat service unavailable.";
@@ -874,13 +891,21 @@ export default function Dashboard() {
     setApiError(null);
     setAnalysisResult(null);
     setSelectedFile(null);
-    setChatHistory([]);
-    try { localStorage.removeItem('reposage_chat_history'); } catch {};
 
     setIsLoading(true);
 
     try {
       const aiSettings = getSavedAiSettings();
+      startStream({
+        repoUrl,
+        company,
+        language,
+        model: selectedModel,
+        temperature: aiSettings.temperature ?? 0.7,
+        maxTokens: aiSettings.maxTokens ?? 2048,
+        systemPrompt: aiSettings.systemPrompt ?? "",
+        batchSize: aiSettings.batchSize ?? 5,
+      });
       const response = await apiFetch("/api/analyze", {
         method: "POST",
         body: JSON.stringify({
@@ -903,12 +928,14 @@ export default function Dashboard() {
       }
 
       const data: BackendResponse = await response.json();
+      setChatHistory([]);
+      try { localStorage.removeItem('reposage_chat_history'); } catch {};
       const currentSessionId = data.sessionPersisted === true ? data.sessionId ?? null : null;
       setSessionId(currentSessionId);
       await saveReport(data, repoUrl, currentSessionId);
       setAnalysisResult(data);
       if (data.sessionPersisted === true && data.sessionOwnerToken) {
-        localStorage.setItem("sessionOwnerToken", data.sessionOwnerToken);
+        setSessionOwnerToken(data.sessionOwnerToken);
       }
       persistAuditHistory(data);
       setChatHistory([]);
@@ -930,6 +957,7 @@ export default function Dashboard() {
       setApiError(errMsg);
     } finally {
       setIsLoading(false);
+      resetStream();
     }
   };
 
@@ -954,7 +982,8 @@ export default function Dashboard() {
       }
       URL.revokeObjectURL(url);
     }
-  };
+  }
+
 
   const chatInputEmpty = !chatInput.trim();
 
@@ -1246,7 +1275,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {streamError && (
+          {streamError && !streamPreviewDisabled && (
             <div
               style={{
                 background: "rgba(239, 68, 68, 0.1)",
@@ -1265,6 +1294,29 @@ export default function Dashboard() {
               <div>
                 <strong style={{ display: "block" }}>Streaming Error</strong>
                 <span>{streamError}</span>
+              </div>
+            </div>
+          )}
+
+          {isMock && (reviewText || isStreaming) && (
+            <div
+              style={{
+                background: "rgba(245, 158, 11, 0.1)",
+                border: "1px solid rgba(245, 158, 11, 0.3)",
+                borderRadius: "8px",
+                padding: "14px 20px",
+                color: "#fbbf24",
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "20px",
+              }}
+            >
+              <AlertOctagon size={20} style={{ color: "#f59e0b" }} />
+              <div>
+                <strong style={{ display: "block" }}>Preview-Only Demo</strong>
+                <span>This streamed review is a demo stub, not real AI analysis.</span>
               </div>
             </div>
           )}
@@ -3266,7 +3318,7 @@ export default function Dashboard() {
         </section>
       </main>
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} />
+        <SettingsModal onClose={handleCloseSettings} />
       )}
       {showShortcutsHelp && <KeyboardShortcutsHelp onClose={() => setShowShortcutsHelp(false)} />}
 
